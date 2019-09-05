@@ -14,8 +14,12 @@
 #define RX433DATAPIN 2    // Pin 2 vom Nano ist der Dateneingang vom Funkmodul RXB6 (Superheterodyne-Empfaenger)
 #define RX433INTERRUPT 0  // Interrupt 0 ist der dazugehoerige Hardware-Interrupt
 #define DEBUG 1           // mit 1 werden die Debug-Meldungen auf dem seriellen Monitor angezeigt
+#define ENABLE_WIND false
+#define ENABLE_RAIN false
+#define ENABLE_TEMP false
 
 volatile unsigned long rxBuffer; // Variable zum speichern des Datentelegramms (32 Bit)
+volatile uint8_t checksum;       // checksum bit 32 - 35
 volatile bool rxOk = false;      // Variable zum anzeigen, das die Daten im Puffer vollstaendig sind
 char printbuffer[64];            // Variable zum formatieren der Ausgabe ueber die serielle Schnittstelle
 
@@ -38,14 +42,26 @@ void rx433Handler() {  // Interrupt-Routine
       syncBit = 1;               // syncBit setzen
       rxBuffer = 0;              // den Puffer loeschen
       rxCounter = 0;             // den Counter auf 0 setzen
+      checksum = 0;
       return;                    // auf den naechsten Interrupt warten (Funktion verlassen)
     }
-    if (syncBit) {                                          // wenn das SyncBit erkannt wurde, dann High-Impuls auswerten:
+    if (syncBit)
+    {                                          
+      // wenn das SyncBit erkannt wurde, dann High-Impuls auswerten:
       if (rxHigh - rxLow > 1500) dataBit = 0;               // High-Impuls laenger als 1.5 ms (2 ms mit 0.5 ms Tolenz), dann DataBit = 0
       if (rxHigh - rxLow > 3500) dataBit = 1;               // High-Impuls laenger als 3.5 ms (4 ms mit 0.5 ms Tolenz), dann DataBit = 1
-      if (rxCounter < 32) {                                 // Wenn noch keine 32 Bits uebertragen wurden, dann...
+      if (rxCounter < 32)
+      {                                
+        // Wenn noch keine 32 Bits uebertragen wurden, dann...
         rxBuffer |= (unsigned long) dataBit << rxCounter++; // das Datenbit in den Puffer schieben und den Counter erhoehen
-      } else {         // wenn das Datentelegramm (32 Bit) vollstaendig uebertragen wurde, dann...
+      }
+      else if(rxCounter < 35)
+      {
+         checksum |= (uint8_t) dataBit << ((rxCounter++) - 32);
+      }
+      else
+      {         
+        // wenn das Datentelegramm (36 Bit) vollstaendig uebertragen wurde, dann...
         rxCounter = 0; // den Counter zuruecksetzen
         syncBit = 0;   // syncBit zuruecksetzen
         rxOk = true;   // Ok signalisieren (rxBuffer ist vollstaendig) fuer die Auswertung in Loop
@@ -71,8 +87,6 @@ void loop()
     byte xBits = (unsigned long) (rxBuffer >> 9) & 0x3;        // die Bits 9 und 10 sind immer 1 (Wert von xBits = 3)
     bool buttonState = (unsigned long) rxBuffer >> 11 & 0x1;   // wenn Bit 11 gesetzt ist, wurde die Taste am Sensor betaetigt
     byte subID = (unsigned long) (rxBuffer >> 12) & 0x7;       // die Bits 12, 13, 14 enthalten eine Sub-ID (Windmesser sendet 2 Telegramme Sub-ID 1 und 7)
-    
-    //byte checksum = (unsigned long) (rxBuffer >> 12) & 0x7;       // die Bits 12, 13, 14
 
     /* 
      *  Hinweis!
@@ -82,6 +96,9 @@ void loop()
      */
     if (xBits == 3 && !(randomID & 0x10))
     {
+
+
+
       // wenn die xBits gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
       if (DEBUG)
       {
@@ -93,6 +110,12 @@ void loop()
         Serial.println(xBits);
         Serial.print(F("bState: "));
         Serial.println(bState);
+        Serial.print(F("Checksum: "));
+        Serial.println(checksum);
+
+        Serial.print(F("Checksum Calc: "));
+        Serial.println(Checksum1(rxBuffer) & 0x7);
+        Serial.println(Checksum2(rxBuffer) & 0x7);
       }
       if (subID == 1)
       {
@@ -155,7 +178,7 @@ void loop()
       if (DEBUG)
         Serial.println();
     }
-    else if(!(randomID & 0x10))
+    else if(!(randomID & 0x10) )
     {
       // wenn die xBits nicht beide gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
       // Telegramm mit temp und hum
@@ -163,47 +186,34 @@ void loop()
       if (DEBUG)
       {
         Serial.print(F("RandomID: "));
-        Serial.print(randomID);
+        Serial.println(randomID);
         Serial.print(F("xBits: "));
         Serial.println(xBits);
         Serial.print(F("bState: "));
         Serial.println(bState);
+        Serial.print(F("Checksum: "));
+        Serial.println(checksum);
       }
       
-      bool temp_negative = (unsigned long) (rxBuffer >> 12) & 0x1;
-      uint16_t temp_absval = ((unsigned long) (rxBuffer >> 13) & 0x07ff);
-      if(temp_negative)
-      {
-        // ToDo
-        Temperature = -1000;
-      }
-      else
-      {
-        Temperature = temp_absval;
-      }
 
       int16_t Temperature2 = Convert_12BitSignedValue_Int16(((unsigned long) (rxBuffer >> 12) & 0x0fff));
 
-
       if (DEBUG)
       {
-        Serial.print(F("Temperatur (1): "));
-        snprintf(printbuffer, 23, "%2d.%d °C", (Temperature / 10), (abs(Temperature % 10)));
-        Serial.println(printbuffer);
 
-        Serial.print(F("Temperatur (2): "));
+        Serial.print(F("Temperatur    : "));
         snprintf(printbuffer, 23, "%2d.%d °C", (Temperature2 / 10), (abs(Temperature2 % 10)));
         Serial.println(printbuffer);
       }
       
-      uint8_t rh_ones = ((unsigned long) (rxBuffer >> 24) & 0x10);
-      uint8_t rh_tens = ((unsigned long) (rxBuffer >> 28) & 0x10);
+      uint8_t rh_ones = ((unsigned long) (rxBuffer >> 24) & 0x0F);
+      uint8_t rh_tens = ((unsigned long) (rxBuffer >> 28) & 0x0F);
       Humidity = rh_ones + rh_tens*10;
 
       if (DEBUG)
       {
         Serial.print(F("Humidity      : "));
-        snprintf(printbuffer, 20, "%2d %", Humidity);
+        snprintf(printbuffer, 21, "%2d ", Humidity);
         Serial.println(printbuffer);
       }
     }
@@ -215,18 +225,15 @@ void loop()
 int16_t Convert_12BitSignedValue_Int16(uint16_t inputvalue)
 {
   inputvalue = inputvalue & 0x0fff;  // make sure the value is realy just 12bit
-
-  if((inputvalue >> 4) & 0x01)  // sign bit is setup
+  if((inputvalue) & 0x800)  // sign bit is setup
   {
     // ToDo
     // value is negative
 
     inputvalue = inputvalue & 0x07ff; // remove sign bit
-
     inputvalue--;   // subtract 1
     inputvalue = ~inputvalue; 
     inputvalue = inputvalue & 0x07ff; // again remove bit 11-15
-
 
     return ((int16_t)inputvalue) * -1;
   }
@@ -235,6 +242,38 @@ int16_t Convert_12BitSignedValue_Int16(uint16_t inputvalue)
     // value is positive
     return inputvalue;
   }
+  
+
+}
+
+uint8_t Checksum1(uint32_t packet)
+{
+  uint8_t n0 = (unsigned long) (packet >> 0) & 0xf;
+  uint8_t n1 = (unsigned long) (packet >> 4) & 0xf;
+  uint8_t n2 = (unsigned long) (packet >> 8) & 0xf;
+  uint8_t n3 = (unsigned long) (packet >> 12) & 0xf;
+  uint8_t n4 = (unsigned long) (packet >> 16) & 0xf;
+  uint8_t n5 = (unsigned long) (packet >> 20) & 0xf;
+  uint8_t n6 = (unsigned long) (packet >> 24) & 0xf;
+  uint8_t n7 = (unsigned long) (packet >> 28) & 0xf;
+
+  return ( 0xf - n0 - n1 - n2 - n3 - n4 - n5 - n6 - n7 ) & 0xf;
+  
+
+}
+
+uint8_t Checksum2(uint32_t packet)
+{
+  uint8_t n0 = (unsigned long) (packet >> 0) & 0xf;
+  uint8_t n1 = (unsigned long) (packet >> 4) & 0xf;
+  uint8_t n2 = (unsigned long) (packet >> 8) & 0xf;
+  uint8_t n3 = (unsigned long) (packet >> 12) & 0xf;
+  uint8_t n4 = (unsigned long) (packet >> 16) & 0xf;
+  uint8_t n5 = (unsigned long) (packet >> 20) & 0xf;
+  uint8_t n6 = (unsigned long) (packet >> 24) & 0xf;
+  uint8_t n7 = (unsigned long) (packet >> 28) & 0xf;
+
+  return ( 0x7 + n0 + n1 + n2 + n3 + n4 + n5 + n6 + n7 ) & 0xf;
   
 
 }

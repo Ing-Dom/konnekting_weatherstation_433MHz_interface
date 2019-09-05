@@ -1,6 +1,7 @@
 {
     "board": "arduino:avr:nano",
-    "configuration": "cpu=atmega328",
+    "configuration": "cpu=atmega328old",
     "sketch": "proto_weatherstation_01.ino",
-    "output": "../build"
+    "output": "../build",
+    "port": "COM4"
 }
