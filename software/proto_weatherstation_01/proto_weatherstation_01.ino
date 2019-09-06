@@ -28,24 +28,35 @@ int16_t Temperature;
 uint8_t Humidity;
 byte BatteryState = 0; // der Batterie-Status von beiden Sensoren (Bit 0 = Windsensor und Bit 1 = Regensensor)
 
-void rx433Handler() {  // Interrupt-Routine
-  if (rxOk) return;    // wenn rxOk noch gesetzt ist, dann Funktion verlassen, damit der Puffer nicht ueberschrieben wird
+void rx433Handler()
+{
+  // Interrupt-Routine
+  if(rxOk)
+    return;    // wenn rxOk noch gesetzt ist, dann Funktion verlassen, damit der Puffer nicht ueberschrieben wird
+  
   static unsigned long rxHigh = 0, rxLow = 0;
   static bool syncBit = 0, dataBit = 0;
   static byte rxCounter = 0;
   bool rxState = digitalRead(RX433DATAPIN); // Daten-Eingang auslesen
-  if (!rxState) {                           // wenn Eingang = Low, dann...
+  if(!rxState)
+  {                           
+    // wenn Eingang = Low, dann...
     rxLow = micros();                       // Mikrosekunden fuer Low merken
-  } else {                                  // ansonsten (Eingang = High)
+  }
+  else
+  {                                  
+    // ansonsten (Eingang = High)
     rxHigh = micros();                      // Mikrosekunden fuer High merken
-    if (rxHigh - rxLow > 8500) { // High-Impuls laenger als 8.5 ms dann SyncBit erkannt (9 ms mit 0.5 ms Toleranz)
+    if(rxHigh - rxLow > 8500) // ToDo && rxLow != 0 // not the first "High" without reference for low
+    { 
+      // High-Impuls laenger als 8.5 ms dann SyncBit erkannt (9 ms mit 0.5 ms Toleranz)
       syncBit = 1;               // syncBit setzen
       rxBuffer = 0;              // den Puffer loeschen
       rxCounter = 0;             // den Counter auf 0 setzen
       checksum = 0;
       return;                    // auf den naechsten Interrupt warten (Funktion verlassen)
     }
-    if (syncBit)
+    if(syncBit)
     {                                          
       // wenn das SyncBit erkannt wurde, dann High-Impuls auswerten:
       if (rxHigh - rxLow > 1500) dataBit = 0;               // High-Impuls laenger als 1.5 ms (2 ms mit 0.5 ms Tolenz), dann DataBit = 0
@@ -55,9 +66,15 @@ void rx433Handler() {  // Interrupt-Routine
         // Wenn noch keine 32 Bits uebertragen wurden, dann...
         rxBuffer |= (unsigned long) dataBit << rxCounter++; // das Datenbit in den Puffer schieben und den Counter erhoehen
       }
-      else if(rxCounter < 35)
+      else if(rxCounter < 36)
       {
          checksum |= (uint8_t) dataBit << ((rxCounter++) - 32);
+         if(rxCounter = 35)
+         {
+           rxCounter = 0; // den Counter zuruecksetzen
+           syncBit = 0;   // syncBit zuruecksetzen
+           rxOk = true;   // Ok signalisieren (rxBuffer ist vollstaendig) fuer die Auswertung in Loop
+         }
       }
       else
       {         
