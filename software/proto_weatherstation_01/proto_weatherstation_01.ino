@@ -69,7 +69,7 @@ void rx433Handler()
       else if(rxCounter < 36)
       {
          checksum |= (uint8_t) dataBit << ((rxCounter++) - 32);
-         if(rxCounter = 35)
+         if(rxCounter == 36)  // add one because rxCounter was already incremented with ++
          {
            rxCounter = 0; // den Counter zuruecksetzen
            syncBit = 0;   // syncBit zuruecksetzen
@@ -105,137 +105,140 @@ void loop()
     bool buttonState = (unsigned long) rxBuffer >> 11 & 0x1;   // wenn Bit 11 gesetzt ist, wurde die Taste am Sensor betaetigt
     byte subID = (unsigned long) (rxBuffer >> 12) & 0x7;       // die Bits 12, 13, 14 enthalten eine Sub-ID (Windmesser sendet 2 Telegramme Sub-ID 1 und 7)
 
-    /* 
-     *  Hinweis!
-     *  Weil sich die Zufalls-ID bei jedem Batteriewechsel aendert, werden nur die xBits (sind immer gesetzt),
-     *  das Bit 4 der Zufalls-ID (ist immer Null) und die subID benutzt, um die richtigen Sensoren zu finden.
-     *  Das sollte ausreichen, solange sich nicht eine gleiche Wetterstation in Reichweite befindet.
-     */
-    if (xBits == 3 && !(randomID & 0x10))
+
+    if(checksum == Checksum1(rxBuffer) || checksum == Checksum2(rxBuffer))
     {
+      /* 
+      *  Hinweis!
+      *  Weil sich die Zufalls-ID bei jedem Batteriewechsel aendert, werden nur die xBits (sind immer gesetzt),
+      *  das Bit 4 der Zufalls-ID (ist immer Null) und die subID benutzt, um die richtigen Sensoren zu finden.
+      *  Das sollte ausreichen, solange sich nicht eine gleiche Wetterstation in Reichweite befindet.
+      */
+      if (xBits == 3 && !(randomID & 0x10))
+      {
 
 
 
-      // wenn die xBits gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
-      if (DEBUG)
-      {
-        Serial.print(F("RandomID: "));
-        Serial.print(randomID);
-        Serial.print(F("  SubID: "));
-        Serial.println(subID);
-        Serial.print(F("xBits: "));
-        Serial.println(xBits);
-        Serial.print(F("bState: "));
-        Serial.println(bState);
-        Serial.print(F("Checksum: "));
-        Serial.println(checksum);
-
-        Serial.print(F("Checksum Calc: "));
-        Serial.println(Checksum1(rxBuffer) & 0x7);
-        Serial.println(Checksum2(rxBuffer) & 0x7);
-      }
-      if (subID == 1)
-      {
-        // subID = 1 ist der Windsensor (Durchschnitts-Windgeschwindigkeit)
-        bState ? BatteryState |= 1 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 0 von batteryState auf 1 setzen
-        WindSpeed = ((unsigned long) (rxBuffer >> 24) & 0xff) * 2; // die Bits 24-31 enthalten die durchschnittliche Windgeschwindigkeit in
-                                                                   // Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
-        uint16_t wsh = WindSpeed * 36; // Windgeschwindigkeit in km/h umrechnen
-        if (DEBUG) {
-          Serial.print(F("Windgeschwindigkeit (/): "));
-          snprintf(printbuffer, 28, "%d.%d m/s  (%d.%d km/h)", (WindSpeed / 10), (WindSpeed % 10), (wsh / 100), (wsh % 100));
-          Serial.println(printbuffer);
-        }
-      }
-      if (subID == 7)
-      {
-        // subID = 7 ist der Windsensor (Windrichtung und Windboen)
-        bState ? BatteryState |= 1 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 0 von batteryState auf 1 setzen
-        uint16_t wdir = (unsigned long) (rxBuffer >> 15) & 0x1ff;    // die Bits 15-23 enthalten die Windrichtung in Grad (0-360)
-        if (wdir <= 360) WindDirection = wdir; // die Windrichtung wird manchmal falsch uebertragen, deshalb nur Daten bis 360 Grad uebernehmen
-        uint16_t wg = ((unsigned long) (rxBuffer >> 24) & 0xff) * 2; // die Bits 24-31 enthalten die Windboen in
-                                                                     // Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
-        if (wg < 500) WindGust = wg;  // die Windboen werden manchmal falsch uebertragen, deshalb nur Daten unter 50m/s (180km/h) uebernehmen
-        uint16_t wgh = WindGust * 36; // Windgeschwindigkeit in km/h umrechnen
-        if (DEBUG) {
-          Serial.print(F("Windrichtung: "));
-          snprintf(printbuffer, 12, "%3d Grad", WindDirection);
-          Serial.println(printbuffer);
-          Serial.print(F("Windboen: "));
-          snprintf(printbuffer, 28, "%d.%d m/s  (%d.%d km/h)", (WindGust / 10), (WindGust % 10), (wgh / 100), (wgh % 100));
-          Serial.println(printbuffer);
-        }
-      }
-      if (subID == 3)
-      {
-        // subID = 3 ist der Regensensor (absolute Regenmenge seit Batteriewechsel)
-        bState ? BatteryState |= 2 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 1 von batteryState auf 1 setzen
-        RainVolume = ((unsigned long) (rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge
-                                                                       // in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2
-                                                                       // hier zusaetzlich mal 10 um einen Integerwert zu erhalten
+        // wenn die xBits gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
         if (DEBUG)
         {
-          Serial.print(F("Regenmenge: "));
-          snprintf(printbuffer, 12, "%d.%d mm", (RainVolume / 100), (RainVolume % 100));
+          Serial.print(F("RandomID: "));
+          Serial.print(randomID);
+          Serial.print(F("  SubID: "));
+          Serial.println(subID);
+          Serial.print(F("xBits: "));
+          Serial.println(xBits);
+          Serial.print(F("bState: "));
+          Serial.println(bState);
+        }
+        if (subID == 1)
+        {
+          // subID = 1 ist der Windsensor (Durchschnitts-Windgeschwindigkeit)
+          bState ? BatteryState |= 1 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 0 von batteryState auf 1 setzen
+          WindSpeed = ((unsigned long) (rxBuffer >> 24) & 0xff) * 2; // die Bits 24-31 enthalten die durchschnittliche Windgeschwindigkeit in
+                                                                    // Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
+          uint16_t wsh = WindSpeed * 36; // Windgeschwindigkeit in km/h umrechnen
+          if (DEBUG) {
+            Serial.print(F("Windgeschwindigkeit (/): "));
+            snprintf(printbuffer, 28, "%d.%d m/s  (%d.%d km/h)", (WindSpeed / 10), (WindSpeed % 10), (wsh / 100), (wsh % 100));
+            Serial.println(printbuffer);
+          }
+        }
+        if (subID == 7)
+        {
+          // subID = 7 ist der Windsensor (Windrichtung und Windboen)
+          bState ? BatteryState |= 1 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 0 von batteryState auf 1 setzen
+          uint16_t wdir = (unsigned long) (rxBuffer >> 15) & 0x1ff;    // die Bits 15-23 enthalten die Windrichtung in Grad (0-360)
+          if (wdir <= 360) WindDirection = wdir; // die Windrichtung wird manchmal falsch uebertragen, deshalb nur Daten bis 360 Grad uebernehmen
+          uint16_t wg = ((unsigned long) (rxBuffer >> 24) & 0xff) * 2; // die Bits 24-31 enthalten die Windboen in
+                                                                      // Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
+          if (wg < 500) WindGust = wg;  // die Windboen werden manchmal falsch uebertragen, deshalb nur Daten unter 50m/s (180km/h) uebernehmen
+          uint16_t wgh = WindGust * 36; // Windgeschwindigkeit in km/h umrechnen
+          if (DEBUG) {
+            Serial.print(F("Windrichtung: "));
+            snprintf(printbuffer, 12, "%3d Grad", WindDirection);
+            Serial.println(printbuffer);
+            Serial.print(F("Windboen: "));
+            snprintf(printbuffer, 28, "%d.%d m/s  (%d.%d km/h)", (WindGust / 10), (WindGust % 10), (wgh / 100), (wgh % 100));
+            Serial.println(printbuffer);
+          }
+        }
+        if (subID == 3)
+        {
+          // subID = 3 ist der Regensensor (absolute Regenmenge seit Batteriewechsel)
+          bState ? BatteryState |= 2 : BatteryState &= 0; // wenn die Batterien schwach sind, Bit 1 von batteryState auf 1 setzen
+          RainVolume = ((unsigned long) (rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge
+                                                                        // in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2
+                                                                        // hier zusaetzlich mal 10 um einen Integerwert zu erhalten
+          if (DEBUG)
+          {
+            Serial.print(F("Regenmenge: "));
+            snprintf(printbuffer, 12, "%d.%d mm", (RainVolume / 100), (RainVolume % 100));
+            Serial.println(printbuffer);
+          }
+        }
+        //if (DEBUG)
+        //  Serial.print(F("zum PC senden: "));
+        /*
+        * Daten, die zum PC gesendet werden:
+        * BatteryState enhaelt den Batterie-Status der beiden Sensoren (Bit 0 und/oder Bit 1 gesetzt = Batterien schwach)
+        * WindSpeed enthaelt die durchschnittliche Windgeschwindigkeit mal 10 (in m/s)
+        * WindDirection enthaelt die Windrichtung (in Grad)
+        * WindGust enthaelt die Windboen mal 10 (in m/s)
+        * RainVolume enthaelt die absolute Regenmenge seit Batteriewechsel mal 100 (in mm)
+        */
+        //snprintf(printbuffer, 26, "%u,%u,%u,%u,%u#", BatteryState, WindSpeed, WindDirection, WindGust, RainVolume);
+        //Serial.println(printbuffer);
+        //if (DEBUG)
+        //  Serial.println();
+      }
+      else if(!(randomID & 0x10) )
+      {
+        // wenn die xBits nicht beide gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
+        // Telegramm mit temp und hum
+
+        if (DEBUG)
+        {
+          Serial.print(F("RandomID: "));
+          Serial.println(randomID);
+          Serial.print(F("xBits: "));
+          Serial.println(xBits);
+          Serial.print(F("bState: "));
+          Serial.println(bState);
+        }
+        
+
+        int16_t Temperature2 = Convert_12BitSignedValue_Int16(((unsigned long) (rxBuffer >> 12) & 0x0fff));
+
+        if (DEBUG)
+        {
+
+          Serial.print(F("Temperatur    : "));
+          snprintf(printbuffer, 23, "%2d.%d °C", (Temperature2 / 10), (abs(Temperature2 % 10)));
+          Serial.println(printbuffer);
+        }
+        
+        uint8_t rh_ones = ((unsigned long) (rxBuffer >> 24) & 0x0F);
+        uint8_t rh_tens = ((unsigned long) (rxBuffer >> 28) & 0x0F);
+        Humidity = rh_ones + rh_tens*10;
+
+        if (DEBUG)
+        {
+          Serial.print(F("Humidity      : "));
+          snprintf(printbuffer, 21, "%2d ", Humidity);
           Serial.println(printbuffer);
         }
       }
-      if (DEBUG)
-        Serial.print(F("zum PC senden: "));
-      /*
-       * Daten, die zum PC gesendet werden:
-       * BatteryState enhaelt den Batterie-Status der beiden Sensoren (Bit 0 und/oder Bit 1 gesetzt = Batterien schwach)
-       * WindSpeed enthaelt die durchschnittliche Windgeschwindigkeit mal 10 (in m/s)
-       * WindDirection enthaelt die Windrichtung (in Grad)
-       * WindGust enthaelt die Windboen mal 10 (in m/s)
-       * RainVolume enthaelt die absolute Regenmenge seit Batteriewechsel mal 100 (in mm)
-       */
-      snprintf(printbuffer, 26, "%u,%u,%u,%u,%u#", BatteryState, WindSpeed, WindDirection, WindGust, RainVolume);
-      Serial.println(printbuffer);
-      if (DEBUG)
-        Serial.println();
+      rxBuffer = 0; // den Puffer loeschen
+      rxOk = false; // Auswertung beendet, dann rxOk zuruecksetzen fuer die Interrupt-Routine
     }
-    else if(!(randomID & 0x10) )
+    else
     {
-      // wenn die xBits nicht beide gesetzt sind und Bit 4 der Zufalls-ID Null ist (ist beim Wind- und Regensensor immer der Fall)
-      // Telegramm mit temp und hum
-
+      rxBuffer = 0; // den Puffer loeschen
+      rxOk = false; // Auswertung beendet, dann rxOk zuruecksetzen fuer die Interrupt-Routine
       if (DEBUG)
-      {
-        Serial.print(F("RandomID: "));
-        Serial.println(randomID);
-        Serial.print(F("xBits: "));
-        Serial.println(xBits);
-        Serial.print(F("bState: "));
-        Serial.println(bState);
-        Serial.print(F("Checksum: "));
-        Serial.println(checksum);
-      }
-      
-
-      int16_t Temperature2 = Convert_12BitSignedValue_Int16(((unsigned long) (rxBuffer >> 12) & 0x0fff));
-
-      if (DEBUG)
-      {
-
-        Serial.print(F("Temperatur    : "));
-        snprintf(printbuffer, 23, "%2d.%d °C", (Temperature2 / 10), (abs(Temperature2 % 10)));
-        Serial.println(printbuffer);
-      }
-      
-      uint8_t rh_ones = ((unsigned long) (rxBuffer >> 24) & 0x0F);
-      uint8_t rh_tens = ((unsigned long) (rxBuffer >> 28) & 0x0F);
-      Humidity = rh_ones + rh_tens*10;
-
-      if (DEBUG)
-      {
-        Serial.print(F("Humidity      : "));
-        snprintf(printbuffer, 21, "%2d ", Humidity);
-        Serial.println(printbuffer);
-      }
+        Serial.println(F("checksum wrong, skipping packet"));
     }
-    rxBuffer = 0; // den Puffer loeschen
-    rxOk = false; // Auswertung beendet, dann rxOk zuruecksetzen fuer die Interrupt-Routine
   }
 }
 
