@@ -42,7 +42,13 @@
             m_RandomIDW132 = randomID;
             m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW132);   // always update the RandomID
 
-            m_WindSpeed = ((unsigned long) (m_rxBuffer >> 24) & 0xff) * 2;  // die Bits 24-31 enthalten die durchschnittliche Windgeschwindigkeit in Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
+            uint16_t WindSpeed = ((unsigned long) (m_rxBuffer >> 24) & 0xff) * 2;  // die Bits 24-31 enthalten die durchschnittliche Windgeschwindigkeit in Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
+
+            if(WindSpeed != m_WindSpeed)
+            {
+              m_WindSpeed = WindSpeed;
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDSPEED);
+            }
 
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Windspeed"));
           }
@@ -53,7 +59,13 @@
             m_RandomIDW174 = randomID;
 
 
-            m_RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2 hier zusaetzlich mal 10 um einen Integerwert zu erhalten
+            uint16_t RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2 hier zusaetzlich mal 10 um einen Integerwert zu erhalten
+
+            if(RainVolume != m_RainVolume)
+            {
+              m_RainVolume = RainVolume;
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RAIN);
+            }
 
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Rain"));
           }
@@ -63,13 +75,23 @@
             m_BatteryLowW132 = bState;
             m_RandomIDW132 = randomID;
 
+            uint16_t WindDirection = m_WindDirection;
+            uint16_t WindGust = m_WindGust;
+
             uint16_t wdir = (unsigned long) (m_rxBuffer >> 15) & 0x1ff;    // die Bits 15-23 enthalten die Windrichtung in Grad (0-360)
-            if(wdir <= 360)
+            if(wdir <= 360 && wdir != m_WindDirection)
+            {
               m_WindDirection = wdir; // die Windrichtung wird manchmal falsch uebertragen, deshalb nur Daten bis 360 Grad uebernehmen
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDDIRECTION);
+            }
             
             uint16_t wg = ((unsigned long) (m_rxBuffer >> 24) & 0xff) * 2;  // die Bits 24-31 enthalten die Windboen in Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
             if(wg < 500)
+            {
               m_WindGust = wg;  // die Windboen werden manchmal falsch uebertragen, deshalb nur Daten unter 50m/s (180km/h) uebernehmen
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDGUST);
+            }
+
 
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Wind Direction"));
           }
@@ -84,7 +106,7 @@
 
           int16_t Temperature = Convert_12BitSignedValue_Int16(((unsigned long) (m_rxBuffer >> 12) & 0x0fff));
 
-          if(Temperature != m_Temperature)
+          //if(Temperature != m_Temperature)
           {
             m_Temperature = Temperature;
             m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_TEMPERATURE);
@@ -94,7 +116,7 @@
           uint8_t rh_tens = ((unsigned long) (m_rxBuffer >> 28) & 0x0F);
           uint8_t Humidity = rh_ones + rh_tens*10;
 
-          if(Humidity != m_Humidity)
+          //if(Humidity != m_Humidity)
           {
             m_Humidity = Humidity;
             m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY);
