@@ -35,6 +35,29 @@ void setup()
 void NewVentus_WeathersensorsDataAvailible()
 {
   if (DEBUG) Serial.println(F("NewData"));
+
+  uint16_t NewDataBitset = mysensors.GetNewDataBitset();
+  if(NewDataBitset & VENTUS_WEATHERSENSORS_TEMPERATURE)
+  {
+    int16_t NewTemperature = mysensors.GetTemperature();
+    if (DEBUG) Serial.print(F("Temperature: "));
+    if (DEBUG) Serial.println(NewTemperature);
+    // check parameters if it should be sent
+
+    //knx.write()...
+  }
+  if(NewDataBitset & VENTUS_WEATHERSENSORS_HUMIDITY)
+  {
+    int16_t NewHumidity = mysensors.GetHumidity();
+    if (DEBUG) Serial.print(F("NewHumidity: "));
+    if (DEBUG) Serial.println(NewHumidity);
+    // check parameters if it should be sent
+    // last_time_sent, KO value vs. new value
+
+    //knx.write()...
+  }
+  
+
 }
 
 void loop()

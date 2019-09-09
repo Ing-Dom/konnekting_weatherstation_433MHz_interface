@@ -4,6 +4,20 @@
 
 #define VENTUS_WEATHERSENSORS_DEBUG true
 
+#define VENTUS_WEATHERSENSORS_TEMPERATURE 0
+#define VENTUS_WEATHERSENSORS_HUMIDITY 1
+#define VENTUS_WEATHERSENSORS_WINDSPEED 2
+#define VENTUS_WEATHERSENSORS_WINDGUST 3
+#define VENTUS_WEATHERSENSORS_WINDDIRECTION 4
+#define VENTUS_WEATHERSENSORS_RAIN 5
+#define VENTUS_WEATHERSENSORS_BATTERYLOWW132 9
+#define VENTUS_WEATHERSENSORS_BATTERYLOWW174 10
+#define VENTUS_WEATHERSENSORS_RANDOMIDW132 11
+#define VENTUS_WEATHERSENSORS_RANDOMIDW174 12
+
+
+
+
 class Ventus_Weathersensors
 {
   //members
@@ -17,7 +31,14 @@ class Ventus_Weathersensors
   private: uint8_t m_Humidity;
   private: bool m_BatteryLowW174;
   private: bool m_BatteryLowW132;
+  private: uint8_t m_RandomIDW132;
+  private: uint8_t m_RandomIDW174;
+
+  private: uint16_t m_NewDataBitset;
   private: void (*m_NewDataCallback)() = NULL;
+
+  private: uint8_t m_RandomIDFilterW132;
+  private: uint8_t m_RandomIDFilterW174;
 
 	//constructors
   public: Ventus_Weathersensors(int RX433DataPin);
@@ -26,6 +47,18 @@ class Ventus_Weathersensors
   public: void Task();
 
   public: void AttachNewDataCallback(void (*NewDataCallback)());
+  public: uint16_t GetNewDataBitset();
+
+  public: uint16_t GetWindSpeed();
+  public: uint16_t GetWindDirection();
+  public: uint16_t GetWindGust();
+  public: uint16_t GetRainVolume();
+  public: int16_t GetTemperature();
+  public: uint8_t GetHumidity();
+  public: bool GetBatteryLowW174();
+  public: bool GetBatteryLowW132();
+  public: uint8_t GetRandomIDW132();
+  public: uint8_t GetRandomIDW174();
 
   private: static void Rx433Handler();
   private: uint8_t ChecksumW132(uint32_t packet);

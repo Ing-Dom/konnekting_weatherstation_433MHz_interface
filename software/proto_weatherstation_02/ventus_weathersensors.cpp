@@ -27,6 +27,8 @@
       bool buttonState = (unsigned long) m_rxBuffer >> 11 & 0x1;   // Bit 11 indicates the transmission was triggerd manually
       byte subID = (unsigned long) (m_rxBuffer >> 12) & 0x7;       // Bits 12, 13, 14 contain a Sub-ID (W132 sends 3 telegrams Sub-ID 1, 3 and 7)
 
+      m_NewDataBitset = 0;                                         // Reset the Bitset indicating which Data is new
+
       // skip telegram if checksum is wrong
       if(m_checksum == ChecksumW132(m_rxBuffer) || m_checksum == ChecksumW174(m_rxBuffer))
       {
@@ -37,6 +39,8 @@
           {
             // subID = 1 is windspeed from W132
             m_BatteryLowW132 = bState;
+            m_RandomIDW132 = randomID;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW132);   // always update the RandomID
 
             m_WindSpeed = ((unsigned long) (m_rxBuffer >> 24) & 0xff) * 2;  // die Bits 24-31 enthalten die durchschnittliche Windgeschwindigkeit in Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
 
@@ -46,6 +50,8 @@
           {
             // subID = 3 is rain from W174
             m_BatteryLowW174 = bState;
+            m_RandomIDW174 = randomID;
+
 
             m_RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2 hier zusaetzlich mal 10 um einen Integerwert zu erhalten
 
@@ -55,6 +61,7 @@
           {
             // subID = 7 is wind direction and gusts from W132
             m_BatteryLowW132 = bState;
+            m_RandomIDW132 = randomID;
 
             uint16_t wdir = (unsigned long) (m_rxBuffer >> 15) & 0x1ff;    // die Bits 15-23 enthalten die Windrichtung in Grad (0-360)
             if(wdir <= 360)
@@ -70,22 +77,32 @@
         else if(m_checksum == ChecksumW132(m_rxBuffer))
         {
           // if the xBits are not both set, it is a temp/hum telegram from W132
-          m_BatteryLowW132 = bState;
+          if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Temp/Hum"));
 
-          int16_t m_Temperature = Convert_12BitSignedValue_Int16(((unsigned long) (m_rxBuffer >> 12) & 0x0fff));
+          m_BatteryLowW132 = bState;
+          m_RandomIDW132 = randomID;
+
+          int16_t Temperature = Convert_12BitSignedValue_Int16(((unsigned long) (m_rxBuffer >> 12) & 0x0fff));
+
+          if(Temperature != m_Temperature)
+          {
+            m_Temperature = Temperature;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_TEMPERATURE);
+          }
 
           uint8_t rh_ones = ((unsigned long) (m_rxBuffer >> 24) & 0x0F);
           uint8_t rh_tens = ((unsigned long) (m_rxBuffer >> 28) & 0x0F);
-          m_Humidity = rh_ones + rh_tens*10;
+          uint8_t Humidity = rh_ones + rh_tens*10;
 
-          if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Temp/Hum"));
-
-          if(m_NewDataCallback != NULL)
+          if(Humidity != m_Humidity)
           {
-            m_NewDataCallback();
+            m_Humidity = Humidity;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY);
           }
-
         }
+        
+        if(m_NewDataBitset && m_NewDataCallback != NULL)    // when there were new Data in this transmission, call callback function
+          m_NewDataCallback();
       }
 
       m_TelegramReady = false;
@@ -98,6 +115,51 @@
   void Ventus_Weathersensors::AttachNewDataCallback(void (*NewDataCallback)())
   {
     m_NewDataCallback = NewDataCallback;
+  }
+
+  uint16_t Ventus_Weathersensors::GetNewDataBitset()
+  {
+    return m_NewDataBitset;
+  }
+
+  uint16_t Ventus_Weathersensors::GetWindSpeed()
+  {
+    return m_WindSpeed;
+  }
+
+  uint16_t Ventus_Weathersensors::GetWindDirection()
+  {
+    return m_WindDirection;
+  }
+
+  uint16_t Ventus_Weathersensors::GetWindGust()
+  {
+    return m_WindGust;
+  }
+
+  uint16_t Ventus_Weathersensors::GetRainVolume()
+  {
+    return m_RainVolume;
+  }
+
+  int16_t Ventus_Weathersensors::GetTemperature()
+  {
+    return m_Temperature;
+  }
+
+  uint8_t Ventus_Weathersensors::GetHumidity()
+  {
+    return m_Humidity;
+  }
+
+  bool Ventus_Weathersensors::GetBatteryLowW174()
+  {
+    return m_BatteryLowW174;
+  }
+
+  bool Ventus_Weathersensors::GetBatteryLowW132()
+  {
+    return m_BatteryLowW132;
   }
 
 
