@@ -41,6 +41,7 @@ class Ventus_Weathersensors
   private: uint8_t m_RandomIDFilterW174;
 
 	//constructors
+  public: Ventus_Weathersensors();
   public: Ventus_Weathersensors(int RX433DataPin);
 
   //functions

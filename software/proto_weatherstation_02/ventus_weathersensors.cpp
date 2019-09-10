@@ -2,12 +2,17 @@
 #include <Arduino.h>
 
   //static members
-  static int  Ventus_Weathersensors::m_RX433DataPin;
-  static volatile unsigned long  Ventus_Weathersensors::m_rxBuffer;        // Variable zum speichern des Datentelegramms (32 Bit)
-  static volatile uint8_t  Ventus_Weathersensors::m_checksum;              // checksum bit 32 - 35
-  static volatile bool  Ventus_Weathersensors::m_TelegramReady;            // Variable zum anzeigen, das die Daten im Puffer vollstaendig sind
+  int  Ventus_Weathersensors::m_RX433DataPin;
+  volatile unsigned long  Ventus_Weathersensors::m_rxBuffer;        // Variable zum speichern des Datentelegramms (32 Bit)
+  volatile uint8_t  Ventus_Weathersensors::m_checksum;              // checksum bit 32 - 35
+  volatile bool  Ventus_Weathersensors::m_TelegramReady;            // Variable zum anzeigen, das die Daten im Puffer vollstaendig sind
 
 	//constructors
+  Ventus_Weathersensors::Ventus_Weathersensors()
+  {
+    ;
+  }
+
   Ventus_Weathersensors::Ventus_Weathersensors(int RX433DataPin)
   {
     Ventus_Weathersensors::m_RX433DataPin = RX433DataPin;
