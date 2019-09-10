@@ -184,6 +184,16 @@
     return m_BatteryLowW132;
   }
 
+  uint8_t Ventus_Weathersensors::GetRandomIDW132()
+  {
+    return m_RandomIDW132;
+  }
+
+  uint8_t Ventus_Weathersensors::GetRandomIDW174()
+  {
+    return m_RandomIDW174;
+  }
+
 
   void Ventus_Weathersensors::Rx433Handler()
   {

@@ -22,16 +22,87 @@
                 <DataPointType>9.007</DataPointType>
                 <Flags>60</Flags> <!-- KLSÜ- -->
             </CommObject>
-			
-			<!-- input for reed contact -->
-			<CommObject Id="" IdName="door_input">
-                <Name>Door Closed</Name>
-                <Function>Motorlock</Function>
-                <DataPointType>9.007</DataPointType>
+
+            <CommObject Id="2" IdName="abs_humidity">
+                <Name>Absolute Air Humidity</Name>
+                <Function>Weather Data (calculated)</Function>
+                <DataPointType>7.001</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="3" IdName="dewpoint">
+                <Name>Relative Air Humidity</Name>
+                <Function>Weather Data (calculated)</Function>
+                <DataPointType>9.001</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="4" IdName="airpressure">
+                <Name>Air pressure</Name>
+                <Function>Weather Data</Function>
+                <DataPointType>9.006</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="5" IdName="windspeed">
+                <Name>Wind Speed (Average)</Name>
+                <Function>Weather Data</Function>
+                <DataPointType>9.005</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="6" IdName="windgust">
+                <Name>Wind Speed (Gust)</Name>
+                <Function>Weather Data</Function>
+                <DataPointType>9.005</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="7" IdName="winddirection">
+                <Name>Wind Direction</Name>
+                <Function>Weather Data</Function>
+                <DataPointType>5.003</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="8" IdName="rainvolume">
+                <Name>Rain Volume</Name>
+                <Function>Weather Data</Function>
+                <DataPointType>9.026</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <CommObject Id="9" IdName="rainvolume1">
+                <Name>Rain Counter 1</Name>
+                <Function>Rain Counter</Function>
+                <DataPointType>9.026</DataPointType>
+                <Flags>60</Flags> <!-- KLSÜ- -->
+            </CommObject>
+
+            <!-- input for reed contact -->
+			<CommObject Id="10" IdName="rainvolume1_reset">
+                <Name>Rain Counter 1 Reset</Name>
+                <Function>Rain Counter</Function>
+                <DataPointType>1.015</DataPointType>
                 <Flags>40</Flags> <!-- K_S__ -->
             </CommObject>
+
+            <CommObject Id="11" IdName="randomidw132">
+                <Name>ID W132</Name>
+                <Function>Info</Function>
+                <DataPointType>5.010</DataPointType>
+                <Flags>52</Flags> <!-- KLÜ -->
+            </CommObject>
+
+            <CommObject Id="12" IdName="randomidw174">
+                <Name>ID W174</Name>
+                <Function>Info</Function>
+                <DataPointType>5.010</DataPointType>
+                <Flags>52</Flags> <!-- KLÜ -->
+            </CommObject>
+
 			
-			<CommObject Id="2" IdName="error_code">
+			<CommObject Id="13" IdName="error_code">
                 <Name>ErrorCode</Name>
                 <Function>Error</Function>
                 <DataPointType>12.001</DataPointType>
