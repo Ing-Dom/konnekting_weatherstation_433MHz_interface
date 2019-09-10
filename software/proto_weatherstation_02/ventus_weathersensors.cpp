@@ -40,7 +40,7 @@
         if(xBits == 3)
         {
           // when xBits is 3, it is a rain, windspeed or winddirection telegram
-          if(subID == 1 && m_checksum == ChecksumW132(m_rxBuffer))
+          if(subID == 1 && m_checksum == ChecksumW132(m_rxBuffer) && (RandomIDFilterW132 == randomID || RandomIDFilterW132 == 0))
           {
             // subID = 1 is windspeed from W132
             m_BatteryLowW132 = bState;
@@ -57,11 +57,12 @@
 
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Windspeed"));
           }
-          else if(subID == 3 && m_checksum == ChecksumW174(m_rxBuffer))
+          else if(subID == 3 && m_checksum == ChecksumW174(m_rxBuffer) && (RandomIDFilterW174 == randomID || RandomIDFilterW174 == 0))
           {
             // subID = 3 is rain from W174
             m_BatteryLowW174 = bState;
             m_RandomIDW174 = randomID;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW174);   // always update the RandomID
 
 
             uint16_t RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2 hier zusaetzlich mal 10 um einen Integerwert zu erhalten
@@ -74,11 +75,12 @@
 
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Rain"));
           }
-          else if(subID == 7 && m_checksum == ChecksumW132(m_rxBuffer))
+          else if(subID == 7 && m_checksum == ChecksumW132(m_rxBuffer) && (RandomIDFilterW132 == randomID || RandomIDFilterW132 == 0))
           {
             // subID = 7 is wind direction and gusts from W132
             m_BatteryLowW132 = bState;
             m_RandomIDW132 = randomID;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW132);   // always update the RandomID
 
             uint16_t WindDirection = m_WindDirection;
             uint16_t WindGust = m_WindGust;
@@ -91,7 +93,7 @@
             }
             
             uint16_t wg = ((unsigned long) (m_rxBuffer >> 24) & 0xff) * 2;  // die Bits 24-31 enthalten die Windboen in Einheiten zu 0.2 m/s und mal 10 ergibt: "* 2" fuer einen Integerwert
-            if(wg < 500)
+            if(wg < 500 && m_WindGust != wg)
             {
               m_WindGust = wg;  // die Windboen werden manchmal falsch uebertragen, deshalb nur Daten unter 50m/s (180km/h) uebernehmen
               m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDGUST);
@@ -101,30 +103,36 @@
             if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Wind Direction"));
           }
         }
-        else if(m_checksum == ChecksumW132(m_rxBuffer))
+        else if(m_checksum == ChecksumW132(m_rxBuffer) && (RandomIDFilterW132 == randomID || RandomIDFilterW132 == 0))
         {
           // if the xBits are not both set, it is a temp/hum telegram from W132
-          if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Temp/Hum"));
-
-          m_BatteryLowW132 = bState;
-          m_RandomIDW132 = randomID;
-
-          int16_t Temperature = Convert_12BitSignedValue_Int16(((unsigned long) (m_rxBuffer >> 12) & 0x0fff));
-
-          //if(Temperature != m_Temperature)
-          {
-            m_Temperature = Temperature;
-            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_TEMPERATURE);
-          }
 
           uint8_t rh_ones = ((unsigned long) (m_rxBuffer >> 24) & 0x0F);
           uint8_t rh_tens = ((unsigned long) (m_rxBuffer >> 28) & 0x0F);
           uint8_t Humidity = rh_ones + rh_tens*10;
 
-          //if(Humidity != m_Humidity)
+          //invalid telegram when hum = 0. telegrams with a lot of zeros can pass the checksum test - 0 % Humidity is not a real value, 0°C is
+          if(Humidity != 0)
           {
-            m_Humidity = Humidity;
-            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY);
+            if(VENTUS_WEATHERSENSORS_DEBUG) Serial.println(F("Temp/Hum"));
+
+            m_BatteryLowW132 = bState;
+            m_RandomIDW132 = randomID;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW132);   // always update the RandomID
+
+            int16_t Temperature = Convert_12BitSignedValue_Int16(((unsigned long) (m_rxBuffer >> 12) & 0x0fff));
+
+            if(Temperature != m_Temperature)
+            {
+              m_Temperature = Temperature;
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_TEMPERATURE);
+            }          
+
+            if(Humidity != m_Humidity)
+            {
+              m_Humidity = Humidity;
+              m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY);
+            }
           }
         }
         

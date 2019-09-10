@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#define VENTUS_WEATHERSENSORS_DEBUG true
+#define VENTUS_WEATHERSENSORS_DEBUG false
 
 #define VENTUS_WEATHERSENSORS_TEMPERATURE 0
 #define VENTUS_WEATHERSENSORS_HUMIDITY 1
@@ -37,8 +37,8 @@ class Ventus_Weathersensors
   private: uint16_t m_NewDataBitset;
   private: void (*m_NewDataCallback)() = NULL;
 
-  private: uint8_t m_RandomIDFilterW132;
-  private: uint8_t m_RandomIDFilterW174;
+  public: uint8_t RandomIDFilterW132 = 0;
+  public: uint8_t RandomIDFilterW174 = 0;
 
 	//constructors
   public: Ventus_Weathersensors();

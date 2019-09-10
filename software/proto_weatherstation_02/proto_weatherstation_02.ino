@@ -50,7 +50,7 @@ cyan:   Normale Mode with Serial Debug
 // ################################################
 // ### DEBUG CONFIGURATION
 // ################################################
-//#define KDEBUG // comment this line to disable DEBUG mode
+#define KDEBUG // comment this line to disable DEBUG mode
 #ifdef KDEBUG
 #include <DebugUtil.h>
 #endif
@@ -217,6 +217,8 @@ void setup()
   }
   timeslice_setup();
   mysensors = new Ventus_Weathersensors(RX433PIN);
+  mysensors->RandomIDFilterW132 = 99;
+  mysensors->RandomIDFilterW174 = 142;
   mysensors->AttachNewDataCallback(NewVentus_WeathersensorsDataAvailible);
 
   Debug.println(F("Setup is ready. go to loop..."));
@@ -226,7 +228,7 @@ void setup()
 
 void NewVentus_WeathersensorsDataAvailible()
 {
-  Debug.println(F("NewData"));
+  //Debug.println(F("NewData"));
 
   uint32_t currentmillis = millis();
   uint16_t NewDataBitset = mysensors->GetNewDataBitset();
@@ -341,6 +343,29 @@ void NewVentus_WeathersensorsDataAvailible()
 
 void loop()
 {
-  mysensors->Task();
+    Knx.task();
+    mysensors->Task();
+    timeslice_scheduler();
+
+    if (Konnekting.isReadyForApplication())
+    {
+      
+    }
 }
 
+void T1() // 1ms
+{
+}
+void T2() // 5ms
+{
+}
+void T3() // 25ms
+{
+}
+void T4() // 500ms
+{
+}
+void T5() // 10000ms
+{
+  
+}
