@@ -7,12 +7,11 @@ V0.0.1
 
 /*
 ToDo:
-  1) check if it works out-of-the-box                     
-  2) add Temp and Hum to sketch with current nano board   DONE
-  3) check if it works                                    
-  4) make a class for reading that stuff...               
-  5) port it to ItsyBitsy                                 
-  6) add knx and historical value storing stuff           
+params in xml
+abs humidity
+dewpoint
+batterylow
+bme280
 */
 
 
@@ -56,7 +55,6 @@ cyan:   Normale Mode with Serial Debug
 #endif
 
 #define DEBUGSERIAL Serial
-#define DEBUG true
 
 
 // ################################################
@@ -76,12 +74,19 @@ cyan:   Normale Mode with Serial Debug
 // ### Global variables, sketch related
 // ################################################
   
-  Ventus_Weathersensors *mysensors;
-  uint32_t data_age [16];
-  uint32_t knx_last_sent [16];
+Ventus_Weathersensors *mysensors;
+uint32_t data_last_received [16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+uint32_t knx_last_sent [16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int32_t knx_last_sent_value[16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 //Dotstar LED
 Adafruit_DotStar px(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BGR);
+
+
+// Konnekting parameters
+uint8_t param_max_data_age;
+uint8_t param_send_on_change[6];
+uint8_t param_cyclic_send_rate[6];
 
 
 // ################################################
@@ -183,6 +188,13 @@ void setup()
   
   if (!Konnekting.isFactorySetting())
   {
+    param_max_data_age = 2;
+    for(int i = 0;i++;i<6)
+    {
+      param_send_on_change[i] = 0;
+      param_cyclic_send_rate[i] = 0;  // ToDo: assign real param
+    }
+
     /*
     param_device_mode = (unsigned short)Konnekting.getUINT8Param(PARAM_device_mode);
     param_code = (unsigned long)Konnekting.getUINT32Param(PARAM_code);
@@ -217,6 +229,7 @@ void setup()
   }
   timeslice_setup();
   mysensors = new Ventus_Weathersensors(RX433PIN);
+  //ToDo: write correct filters here from param
   mysensors->RandomIDFilterW132 = 99;
   mysensors->RandomIDFilterW174 = 142;
   mysensors->AttachNewDataCallback(NewVentus_WeathersensorsDataAvailible);
@@ -239,102 +252,106 @@ void NewVentus_WeathersensorsDataAvailible()
 
     Debug.println(F("Temperature: %d"), NewTemperature);
 
-    calculateElapsedMillis(data_age[VENTUS_WEATHERSENSORS_TEMPERATURE], currentmillis);
-    // check parameters if it should be sent
-
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_TEMPERATURE] = currentmillis;
+    data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE] = currentmillis;
+    
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[COMOBJ_temperature] - NewTemperature) > param_send_on_change[VENTUS_WEATHERSENSORS_TEMPERATURE]) //ToDo: check here what happens with negative values....
+    {
+      Knx.write(COMOBJ_temperature, NewTemperature / 10.0); // want to use double to not lose precision, so divide by 10.0
+      knx_last_sent[COMOBJ_temperature] = currentmillis;
+      knx_last_sent_value[COMOBJ_temperature] = NewTemperature;
+    }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY))
   {
     uint8_t NewHumidity = mysensors->GetHumidity();
-    Debug.println(F("NewHumidity: %d"), NewHumidity);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
 
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_HUMIDITY] = millis();
+    Debug.println(F("NewHumidity: %d"), NewHumidity);
+    
+    data_last_received[VENTUS_WEATHERSENSORS_HUMIDITY] = millis();
+
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_HUMIDITY] - NewHumidity) > param_send_on_change[VENTUS_WEATHERSENSORS_HUMIDITY])
+    {
+      Knx.write(COMOBJ_humidity, NewHumidity); // can feed the int in directly, will be converted to F16 by Lib correctly
+      knx_last_sent[COMOBJ_humidity] = currentmillis;
+      knx_last_sent_value[VENTUS_WEATHERSENSORS_HUMIDITY] = NewHumidity;
+    }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDSPEED))
   {
     uint16_t NewWindspeed = mysensors->GetWindSpeed();
     Debug.println(F("NewWindspeed: %d"), NewWindspeed);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
 
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_WINDSPEED] = millis();
+    data_last_received[VENTUS_WEATHERSENSORS_WINDSPEED] = millis();
+
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] - NewWindspeed) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDSPEED])
+    {
+      Knx.write(COMOBJ_windspeed, NewWindspeed / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+      knx_last_sent[COMOBJ_windspeed] = currentmillis;
+      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] = NewWindspeed;
+    }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDGUST))
   {
     uint16_t NewWindGust = mysensors->GetWindGust();
     Debug.println(F("NewWindGust: %d"), NewWindGust);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
+    
+    data_last_received[VENTUS_WEATHERSENSORS_WINDGUST] = millis();
 
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_WINDGUST] = millis();
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] - NewWindGust) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDGUST])
+    {
+      Knx.write(COMOBJ_windgust, NewWindGust / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+      knx_last_sent[COMOBJ_windgust] = currentmillis;
+      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] = NewWindGust;
+    }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDDIRECTION))
   {
     uint16_t NewWindDirection = mysensors->GetWindDirection();
     Debug.println(F("NewWindDirection: %d"), NewWindDirection);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
+    
+    data_last_received[VENTUS_WEATHERSENSORS_WINDDIRECTION] = millis();
 
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_WINDDIRECTION] = millis();
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDDIRECTION] - NewWindDirection) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDDIRECTION])
+    {
+      Knx.write(COMOBJ_winddirection, (NewWindDirection * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255 // ToDo Check this with ETS...
+      knx_last_sent[COMOBJ_winddirection] = currentmillis;
+      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDDIRECTION] = NewWindDirection;
+    }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_RAIN))
   {
     uint16_t NewRainVolume = mysensors->GetRainVolume();
     Debug.println(F("NewRainVolume: %d"), NewRainVolume);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
+    
+    data_last_received[VENTUS_WEATHERSENSORS_RAIN] = millis();
 
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_RAIN] = millis();
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
+    {
+      Knx.write(COMOBJ_rainvolume, (NewRainVolume / 4.0)); // value is in 0,25 mm, divide by 4 to get mm. Lib will convert to F16..
+      knx_last_sent[COMOBJ_rainvolume] = currentmillis;
+      knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] = NewRainVolume;
+    }
   }
-
-  if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_BATTERYLOWW132))
-  {
-    bool NewBatteryLowW132 = mysensors->GetBatteryLowW132();
-    Debug.println(F("NewBatteryLowW132: %d"), NewBatteryLowW132);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
-
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_BATTERYLOWW132] = millis();
-  }
-  if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_BATTERYLOWW174))
-  {
-    bool NewBatteryLowW174 = mysensors->GetBatteryLowW174();
-    Debug.println(F("NewBatteryLowW174: %d"), NewBatteryLowW174);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
-
-    //knx.write()...
-    data_age[VENTUS_WEATHERSENSORS_BATTERYLOWW174] = millis();
-  }
-
 
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW132))
   {
     uint8_t NewRandomIDW132 = mysensors->GetRandomIDW132();
     Debug.println(F("NewRandomIDW132: %d"), NewRandomIDW132);
-
-    Knx.write(COMOBJ_randomidw132, NewRandomIDW132);
-    data_age[VENTUS_WEATHERSENSORS_RANDOMIDW132] = millis();
+    if(mysensors->RandomIDFilterW132 == 0)  // only send RandomIDs when Filter is disabled
+      Knx.write(COMOBJ_randomidw132, NewRandomIDW132);
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW174))
   {
     uint8_t NewRandomIDW174 = mysensors->GetRandomIDW174();
     Debug.println(F("NewRandomIDW174: %d"), NewRandomIDW174);
-    // check parameters if it should be sent
-    // last_time_sent, KO value vs. new value
-
-    Knx.write(COMOBJ_randomidw174, NewRandomIDW174);
-    data_age[VENTUS_WEATHERSENSORS_RANDOMIDW174] = millis();
+    if(mysensors->RandomIDFilterW174 == 0)  // only send RandomIDs when Filter is disabled
+      Knx.write(COMOBJ_randomidw174, NewRandomIDW174);
   }
 
   
@@ -356,15 +373,121 @@ void loop()
 void T1() // 1ms
 {
 }
+
 void T2() // 5ms
 {
 }
+
 void T3() // 25ms
 {
 }
+
 void T4() // 500ms
 {
+  // cyclic sending
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_temperature], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_temperature, mysensors->GetTemperature() / 10.0); // want to use double to not lose precision, so divide by 10.0
+        knx_last_sent[COMOBJ_temperature] = millis();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_HUMIDITY] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_HUMIDITY] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_HUMIDITY], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_humidity], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_HUMIDITY] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_humidity, mysensors->GetHumidity()); // can feed the int in directly, will be converted to F16 by Lib correctly
+        knx_last_sent[COMOBJ_humidity] = millis();
+        knx_last_sent_value[COMOBJ_humidity] =  mysensors->GetHumidity();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDSPEED] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_WINDSPEED] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_WINDSPEED], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_windspeed], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDSPEED] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_windspeed, mysensors->GetWindSpeed() / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+        knx_last_sent[COMOBJ_windspeed] = millis();
+        knx_last_sent_value[COMOBJ_windspeed] =  mysensors->GetWindSpeed();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDGUST] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_WINDGUST] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_WINDGUST], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_windgust], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDGUST] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_windgust, mysensors->GetWindGust() / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+        knx_last_sent[COMOBJ_windgust] = millis();
+        knx_last_sent_value[COMOBJ_windgust] =  mysensors->GetWindGust();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDDIRECTION] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_WINDDIRECTION] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_WINDDIRECTION], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_winddirection], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDDIRECTION] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_winddirection, (mysensors->GetWindDirection() * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255 // ToDo Check this with ETS...
+        knx_last_sent[COMOBJ_winddirection] = millis();
+        knx_last_sent_value[COMOBJ_winddirection] =  mysensors->GetWindDirection();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_RAIN] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_RAIN] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_RAIN], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_rainvolume], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_RAIN] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 4.0)); // value is in 0,25 mm, divide by 4 to get mm. Lib will convert to F16..
+        knx_last_sent[COMOBJ_rainvolume] = millis();
+        knx_last_sent_value[COMOBJ_rainvolume] =  mysensors->GetRainVolume();
+      }
+    }
+  }
+  #define COMOBJ_batteryloww132 14 //ToDo remove
+  if( calculateElapsedMillis(knx_last_sent[COMOBJ_batteryloww132], millis()) > 3600000 ||   // send once an hour
+      knx_last_sent_value[COMOBJ_batteryloww132] !=  mysensors->GetBatteryLowW132())    // or when it changed
+  {
+    Knx.write(COMOBJ_batteryloww132, mysensors->GetBatteryLowW132());
+    knx_last_sent[COMOBJ_batteryloww132] = millis();
+    knx_last_sent_value[COMOBJ_batteryloww132] =  mysensors->GetBatteryLowW132();
+  }
+  #define COMOBJ_batteryloww174 15 //ToDo remove
+  if( calculateElapsedMillis(knx_last_sent[COMOBJ_batteryloww174], millis()) > 3600000 ||   // send once an hour
+      knx_last_sent_value[COMOBJ_batteryloww174] !=  mysensors->GetBatteryLowW174())    // or when it changed
+  {
+    Knx.write(COMOBJ_batteryloww174, mysensors->GetBatteryLowW174());
+    knx_last_sent[COMOBJ_batteryloww174] = millis();
+    knx_last_sent_value[COMOBJ_batteryloww174] =  mysensors->GetBatteryLowW174();
+  }
+
+
 }
+
 void T5() // 10000ms
 {
   
