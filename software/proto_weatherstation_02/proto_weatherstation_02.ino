@@ -12,6 +12,7 @@ abs humidity
 dewpoint
 batterylow
 bme280
+data age is not correct only updated when changed)
 */
 
 
@@ -188,11 +189,11 @@ void setup()
   
   if (!Konnekting.isFactorySetting())
   {
-    param_max_data_age = 2;
-    for(int i = 0;i++;i<6)
+    param_max_data_age = 10;
+    for(int i = 0;i<6;i++)
     {
       param_send_on_change[i] = 0;
-      param_cyclic_send_rate[i] = 0;  // ToDo: assign real param
+      param_cyclic_send_rate[i] = 1;  // ToDo: assign real param
     }
 
     /*
@@ -288,7 +289,7 @@ void NewVentus_WeathersensorsDataAvailible()
     // check if the parameter allows sending
     if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] - NewWindspeed) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDSPEED])
     {
-      Knx.write(COMOBJ_windspeed, NewWindspeed / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+      Knx.write(COMOBJ_windspeed, NewWindspeed / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
       knx_last_sent[COMOBJ_windspeed] = currentmillis;
       knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] = NewWindspeed;
     }
@@ -303,7 +304,7 @@ void NewVentus_WeathersensorsDataAvailible()
     // check if the parameter allows sending
     if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] - NewWindGust) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDGUST])
     {
-      Knx.write(COMOBJ_windgust, NewWindGust / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+      Knx.write(COMOBJ_windgust, NewWindGust / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
       knx_last_sent[COMOBJ_windgust] = currentmillis;
       knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] = NewWindGust;
     }
@@ -333,7 +334,7 @@ void NewVentus_WeathersensorsDataAvailible()
     // check if the parameter allows sending
     if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
     {
-      Knx.write(COMOBJ_rainvolume, (NewRainVolume / 4.0)); // value is in 0,25 mm, divide by 4 to get mm. Lib will convert to F16..
+      Knx.write(COMOBJ_rainvolume, (NewRainVolume / 100.0)); // value is in 0,01 mm, divide by 100 to get mm. Lib will convert to F16..
       knx_last_sent[COMOBJ_rainvolume] = currentmillis;
       knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] = NewRainVolume;
     }
@@ -385,7 +386,6 @@ void T3() // 25ms
 void T4() // 500ms
 {
   // cyclic sending
-
   if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] > 0)  // value > 0 indicates that feature is active
   {
     if( data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE] != 0 &&     // check if there is value to send AND
@@ -420,7 +420,7 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_windspeed], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDSPEED] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_windspeed, mysensors->GetWindSpeed() / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+        Knx.write(COMOBJ_windspeed, mysensors->GetWindSpeed() / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
         knx_last_sent[COMOBJ_windspeed] = millis();
         knx_last_sent_value[COMOBJ_windspeed] =  mysensors->GetWindSpeed();
       }
@@ -434,7 +434,7 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_windgust], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDGUST] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_windgust, mysensors->GetWindGust() / 5.0); // value is in int 0.2m/s divide by 5.0 to get value in float m/s
+        Knx.write(COMOBJ_windgust, mysensors->GetWindGust() / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
         knx_last_sent[COMOBJ_windgust] = millis();
         knx_last_sent_value[COMOBJ_windgust] =  mysensors->GetWindGust();
       }
@@ -462,7 +462,7 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_rainvolume], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_RAIN] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 4.0)); // value is in 0,25 mm, divide by 4 to get mm. Lib will convert to F16..
+        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 100.0)); // value is in 0,01 mm, divide by 100 to get mm. Lib will convert to F16..
         knx_last_sent[COMOBJ_rainvolume] = millis();
         knx_last_sent_value[COMOBJ_rainvolume] =  mysensors->GetRainVolume();
       }

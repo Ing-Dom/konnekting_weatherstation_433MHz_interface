@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#define VENTUS_WEATHERSENSORS_DEBUG false
+#define VENTUS_WEATHERSENSORS_DEBUG true
 
 #define VENTUS_WEATHERSENSORS_TEMPERATURE 0
 #define VENTUS_WEATHERSENSORS_HUMIDITY 1
@@ -26,11 +26,14 @@ class Ventus_Weathersensors
   private: static volatile uint8_t m_checksum;              // checksum bit 32 - 35
   private: static volatile bool m_TelegramReady;            // Variable zum anzeigen, das die Daten im Puffer vollstaendig sind
 
-  private: uint16_t m_WindSpeed, m_WindDirection, m_WindGust, m_RainVolume = 0xffff;
+  private: uint16_t m_WindSpeed = 0xffff;
+  private: uint16_t m_WindDirection = 0xffff;
+  private: uint16_t m_WindGust = 0xffff;
+  private: uint16_t m_RainVolume = 0xffff;
   private: int16_t m_Temperature = 0xffff;
   private: uint8_t m_Humidity = 0xff;
-  private: bool m_BatteryLowW174;
-  private: bool m_BatteryLowW132;
+  private: bool m_BatteryLowW174 = false;
+  private: bool m_BatteryLowW132 = false;
   private: uint8_t m_RandomIDW132;
   private: uint8_t m_RandomIDW174;
 
