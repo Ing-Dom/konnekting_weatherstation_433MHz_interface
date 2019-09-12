@@ -7,12 +7,10 @@ V0.0.1
 
 /*
 ToDo:
-params in xml
-abs humidity
-dewpoint
-batterylow
+rain counters
 bme280
 data age is not correct only updated when changed)
+change DPT 9.007 at absolsute hum to 9.029 with beta5 / 1.0.0
 */
 
 
@@ -86,8 +84,13 @@ Adafruit_DotStar px(NUMPIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BGR);
 
 // Konnekting parameters
 uint8_t param_max_data_age;
-uint8_t param_send_on_change[6];
-uint8_t param_cyclic_send_rate[6];
+uint8_t param_send_on_change[8];
+uint8_t param_cyclic_send_rate[8];
+
+uint8_t param_filter_randomID_W132;
+uint8_t param_filter_randomID_W174;
+
+
 
 
 // ################################################
@@ -189,12 +192,15 @@ void setup()
   
   if (!Konnekting.isFactorySetting())
   {
-    param_max_data_age = 10;
-    for(int i = 0;i<6;i++)
+    param_max_data_age = (uint8_t)Konnekting.getUINT8Param(PARAM_max_data_age);
+    for(int i = 0;i++;i<6)
     {
-      param_send_on_change[i] = 0;
-      param_cyclic_send_rate[i] = 1;  // ToDo: assign real param
+      param_send_on_change[i] = (uint8_t)Konnekting.getUINT8Param(PARAM_send_on_change_temperature+i);
+      param_cyclic_send_rate[i] = (uint8_t)Konnekting.getUINT8Param(PARAM_cyclic_send_rate_temperature+i);
     }
+
+    param_filter_randomID_W132 = (uint8_t)Konnekting.getUINT8Param(PARAM_filter_randomID_W132);
+    param_filter_randomID_W174 = (uint8_t)Konnekting.getUINT8Param(PARAM_filter_randomID_W174);
 
     /*
     param_device_mode = (unsigned short)Konnekting.getUINT8Param(PARAM_device_mode);
@@ -230,9 +236,8 @@ void setup()
   }
   timeslice_setup();
   mysensors = new Ventus_Weathersensors(RX433PIN);
-  //ToDo: write correct filters here from param
-  mysensors->RandomIDFilterW132 = 99;
-  mysensors->RandomIDFilterW174 = 142;
+  mysensors->RandomIDFilterW132 = param_filter_randomID_W132;
+  mysensors->RandomIDFilterW174 = param_filter_randomID_W174;
   mysensors->AttachNewDataCallback(NewVentus_WeathersensorsDataAvailible);
 
   Debug.println(F("Setup is ready. go to loop..."));
@@ -272,11 +277,11 @@ void NewVentus_WeathersensorsDataAvailible()
     data_last_received[VENTUS_WEATHERSENSORS_HUMIDITY] = millis();
 
     // check if the parameter allows sending
-    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_HUMIDITY] - NewHumidity) > param_send_on_change[VENTUS_WEATHERSENSORS_HUMIDITY])
+    if(abs(knx_last_sent_value[COMOBJ_humidity] - NewHumidity) > param_send_on_change[VENTUS_WEATHERSENSORS_HUMIDITY])
     {
       Knx.write(COMOBJ_humidity, NewHumidity); // can feed the int in directly, will be converted to F16 by Lib correctly
       knx_last_sent[COMOBJ_humidity] = currentmillis;
-      knx_last_sent_value[VENTUS_WEATHERSENSORS_HUMIDITY] = NewHumidity;
+      knx_last_sent_value[COMOBJ_humidity] = NewHumidity;
     }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDSPEED))
@@ -287,11 +292,11 @@ void NewVentus_WeathersensorsDataAvailible()
     data_last_received[VENTUS_WEATHERSENSORS_WINDSPEED] = millis();
 
     // check if the parameter allows sending
-    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] - NewWindspeed) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDSPEED])
+    if(abs(knx_last_sent_value[COMOBJ_windspeed] - NewWindspeed) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDSPEED])
     {
       Knx.write(COMOBJ_windspeed, NewWindspeed / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
       knx_last_sent[COMOBJ_windspeed] = currentmillis;
-      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDSPEED] = NewWindspeed;
+      knx_last_sent_value[COMOBJ_windspeed] = NewWindspeed;
     }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDGUST))
@@ -302,11 +307,11 @@ void NewVentus_WeathersensorsDataAvailible()
     data_last_received[VENTUS_WEATHERSENSORS_WINDGUST] = millis();
 
     // check if the parameter allows sending
-    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] - NewWindGust) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDGUST])
+    if(abs(knx_last_sent_value[COMOBJ_windgust] - NewWindGust) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDGUST])
     {
       Knx.write(COMOBJ_windgust, NewWindGust / 10.0); // value is in int 0.1m/s divide by 10.0 to get value in float m/s
       knx_last_sent[COMOBJ_windgust] = currentmillis;
-      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDGUST] = NewWindGust;
+      knx_last_sent_value[COMOBJ_windgust] = NewWindGust;
     }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_WINDDIRECTION))
@@ -317,11 +322,11 @@ void NewVentus_WeathersensorsDataAvailible()
     data_last_received[VENTUS_WEATHERSENSORS_WINDDIRECTION] = millis();
 
     // check if the parameter allows sending
-    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDDIRECTION] - NewWindDirection) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDDIRECTION])
+    if(abs(knx_last_sent_value[COMOBJ_winddirection] - NewWindDirection) > param_send_on_change[VENTUS_WEATHERSENSORS_WINDDIRECTION])
     {
-      Knx.write(COMOBJ_winddirection, (NewWindDirection * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255 // ToDo Check this with ETS...
+      Knx.write(COMOBJ_winddirection, (NewWindDirection * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255
       knx_last_sent[COMOBJ_winddirection] = currentmillis;
-      knx_last_sent_value[VENTUS_WEATHERSENSORS_WINDDIRECTION] = NewWindDirection;
+      knx_last_sent_value[COMOBJ_winddirection] = NewWindDirection;
     }
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_RAIN))
@@ -332,11 +337,41 @@ void NewVentus_WeathersensorsDataAvailible()
     data_last_received[VENTUS_WEATHERSENSORS_RAIN] = millis();
 
     // check if the parameter allows sending
-    if(abs(knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
+    if(abs(knx_last_sent_value[COMOBJ_rainvolume] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
     {
       Knx.write(COMOBJ_rainvolume, (NewRainVolume / 100.0)); // value is in 0,01 mm, divide by 100 to get mm. Lib will convert to F16..
       knx_last_sent[COMOBJ_rainvolume] = currentmillis;
-      knx_last_sent_value[VENTUS_WEATHERSENSORS_RAIN] = NewRainVolume;
+      knx_last_sent_value[COMOBJ_rainvolume] = NewRainVolume;
+    }
+  }
+  if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_DEWPOINT))
+  {
+    uint16_t NewDewpoint = mysensors->GetDewpoint();
+    Debug.println(F("NewDewpoint: %d"), NewDewpoint);
+    
+    data_last_received[VENTUS_WEATHERSENSORS_DEWPOINT] = millis();
+
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[COMOBJ_dewpoint] - NewDewpoint) > param_send_on_change[VENTUS_WEATHERSENSORS_DEWPOINT])
+    {
+      Knx.write(COMOBJ_dewpoint, (NewDewpoint / 10.0)); // value is in 0,1 °C, want to use double to not lose precision, so divide by 10.0
+      knx_last_sent[COMOBJ_dewpoint] = currentmillis;
+      knx_last_sent_value[COMOBJ_dewpoint] = NewDewpoint;
+    }
+  }
+  if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_ABSHUMIDITY))
+  {
+    uint16_t NewAbsHum = mysensors->GetAbsoluteHumidity();
+    Debug.println(F("NewAbsHum: %d"), NewAbsHum);
+    
+    data_last_received[VENTUS_WEATHERSENSORS_ABSHUMIDITY] = millis();
+
+    // check if the parameter allows sending
+    if(abs(knx_last_sent_value[COMOBJ_abs_humidity] - NewAbsHum) > param_send_on_change[VENTUS_WEATHERSENSORS_ABSHUMIDITY])
+    {
+      Knx.write(COMOBJ_abs_humidity, (NewAbsHum / 100.0)); // value is in 0,01 g/m³, want to use double to not lose precision, so divide by 100.0
+      knx_last_sent[COMOBJ_abs_humidity] = currentmillis;
+      knx_last_sent_value[COMOBJ_abs_humidity] = NewAbsHum;
     }
   }
 
@@ -448,7 +483,7 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_winddirection], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_WINDDIRECTION] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_winddirection, (mysensors->GetWindDirection() * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255 // ToDo Check this with ETS...
+        Knx.write(COMOBJ_winddirection, (mysensors->GetWindDirection() * 255) / 360); // can feed the int scaled 0-360° scaled to 0-255
         knx_last_sent[COMOBJ_winddirection] = millis();
         knx_last_sent_value[COMOBJ_winddirection] =  mysensors->GetWindDirection();
       }
@@ -468,7 +503,35 @@ void T4() // 500ms
       }
     }
   }
-  #define COMOBJ_batteryloww132 14 //ToDo remove
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_DEWPOINT] > 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_DEWPOINT] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_DEWPOINT], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_dewpoint], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_DEWPOINT] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_dewpoint, (mysensors->GetDewpoint() / 10.0)); // value is in 0,1 °C, want to use double to not lose precision, so divide by 10.0
+        knx_last_sent[COMOBJ_dewpoint] = millis();
+        knx_last_sent_value[COMOBJ_dewpoint] =  mysensors->GetDewpoint();
+      }
+    }
+  }
+
+  if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_ABSHUMIDITY]> 0)  // value > 0 indicates that feature is active
+  {
+    if( data_last_received[VENTUS_WEATHERSENSORS_ABSHUMIDITY] != 0 &&     // check if there is value to send AND
+        calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_ABSHUMIDITY], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
+    {
+      if(calculateElapsedMillis(knx_last_sent[COMOBJ_abs_humidity], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_ABSHUMIDITY] * 10000) // one param digit is 10s
+      {
+        Knx.write(COMOBJ_abs_humidity, (mysensors->GetAbsoluteHumidity() / 100.0)); // value is in 0,01 g/m³, want to use double to not lose precision, so divide by 100.0
+        knx_last_sent[COMOBJ_abs_humidity] = millis();
+        knx_last_sent_value[COMOBJ_abs_humidity] =  mysensors->GetAbsoluteHumidity();
+      }
+    }
+  }
+  
   if( calculateElapsedMillis(knx_last_sent[COMOBJ_batteryloww132], millis()) > 3600000 ||   // send once an hour
       knx_last_sent_value[COMOBJ_batteryloww132] !=  mysensors->GetBatteryLowW132())    // or when it changed
   {
@@ -476,7 +539,7 @@ void T4() // 500ms
     knx_last_sent[COMOBJ_batteryloww132] = millis();
     knx_last_sent_value[COMOBJ_batteryloww132] =  mysensors->GetBatteryLowW132();
   }
-  #define COMOBJ_batteryloww174 15 //ToDo remove
+  
   if( calculateElapsedMillis(knx_last_sent[COMOBJ_batteryloww174], millis()) > 3600000 ||   // send once an hour
       knx_last_sent_value[COMOBJ_batteryloww174] !=  mysensors->GetBatteryLowW174())    // or when it changed
   {
