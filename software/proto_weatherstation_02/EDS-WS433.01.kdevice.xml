@@ -5,6 +5,82 @@
         <DeviceName>EDS-WS433.01 Weatherstation for 433Mhz Sensors</DeviceName>
 		
 		<Parameters>
+        	<ParameterGroup Name="433MHz Interface" Id="0">
+				<Parameter Id="0" IdName="filter_randomID_W132">
+					<Description>RandomID of W132 (use 0 to disable filtering)</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="1" IdName="filter_randomID_W174">
+					<Description>RandomID of W174 (use 0 to disable filtering)</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+			</ParameterGroup>
+            <ParameterGroup Name="KNX Sending" Id="1">
+                <Parameter Id="2" IdName="max_data_age">
+					<Description>Maximum age of received weather data [x 30s]</Description>
+				        <Value Type="uint8" Default="0F" />
+				</Parameter>
+                <Parameter Id="3" IdName="send_on_change_temperature">
+					<Description>Send Temperature on change only if change is greater [x 0.1°C]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="4" IdName="send_on_change_humidity">
+					<Description>Send Humidity on change only if change is greater [x 1%]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="5" IdName="send_on_change_windspeed">
+					<Description>Send Windspeed on change only if change is greater [x 0.1m/s]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="6" IdName="send_on_change_windgust">
+					<Description>Send Windgust on change only if change is greater [x 0.1m/s]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="7" IdName="send_on_change_rain">
+					<Description>Send Rain Volume on change only if change is greater [x 0.01l/m²]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="8" IdName="send_on_change_dewpoint">
+					<Description>Send Dewpoint on change only if change is greater [x 0.1°C]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="9" IdName="send_on_change_abshumidity">
+					<Description>Send Abs. Humidity on change only if change is greater [x 0.01g/m³]</Description>
+				        <Value Type="uint8" Default="00" />
+				</Parameter>
+                <Parameter Id="10" IdName="cyclic_send_rate_temperature">
+					<Description>Send Temperature every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="11" IdName="cyclic_send_rate_humidity">
+					<Description>Send Humidity every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="12" IdName="cyclic_send_rate_windspeed">
+					<Description>Send Windspeed every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="13" IdName="cyclic_send_rate_windgust">
+					<Description>Send Windgust every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="14" IdName="cyclic_send_rate_winddirection">
+					<Description>Send Winddirection every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="15" IdName="cyclic_send_rate_rain">
+					<Description>Send Rain Volume every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="16" IdName="cyclic_send_rate_dewpoint">
+					<Description>Send Dewpoint every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+                <Parameter Id="17" IdName="cyclic_send_rate_abs_humidity">
+					<Description>Send Abs. Humidity every [x 10s]</Description>
+				        <Value Type="uint8" Default="1E" />
+				</Parameter>
+            </ParameterGroup>
 		</Parameters>
 		
         <CommObjects>
@@ -26,7 +102,7 @@
             <CommObject Id="2" IdName="abs_humidity">
                 <Name>Absolute Air Humidity</Name>
                 <Function>Weather Data (calculated)</Function>
-                <DataPointType>7.001</DataPointType>
+                <DataPointType>9.007</DataPointType>
                 <Flags>60</Flags> <!-- KLSÜ- -->
             </CommObject>
 
@@ -87,14 +163,28 @@
                 <Flags>40</Flags> <!-- K_S__ -->
             </CommObject>
 
-            <CommObject Id="11" IdName="randomidw132">
+            <CommObject Id="11" IdName="batteryloww132">
+                <Name>Battery Low W132</Name>
+                <Function>Info</Function>
+                <DataPointType>1.002</DataPointType>
+                <Flags>52</Flags> <!-- KLÜ -->
+            </CommObject>
+
+            <CommObject Id="12" IdName="batteryloww174">
+                <Name>Battery Low W174</Name>
+                <Function>Info</Function>
+                <DataPointType>1.002</DataPointType>
+                <Flags>52</Flags> <!-- KLÜ -->
+            </CommObject>
+
+            <CommObject Id="13" IdName="randomidw132">
                 <Name>ID W132</Name>
                 <Function>Info</Function>
                 <DataPointType>5.010</DataPointType>
                 <Flags>52</Flags> <!-- KLÜ -->
             </CommObject>
 
-            <CommObject Id="12" IdName="randomidw174">
+            <CommObject Id="14" IdName="randomidw174">
                 <Name>ID W174</Name>
                 <Function>Info</Function>
                 <DataPointType>5.010</DataPointType>
@@ -102,7 +192,7 @@
             </CommObject>
 
 			
-			<CommObject Id="13" IdName="error_code">
+			<CommObject Id="15" IdName="error_code">
                 <Name>ErrorCode</Name>
                 <Function>Error</Function>
                 <DataPointType>12.001</DataPointType>

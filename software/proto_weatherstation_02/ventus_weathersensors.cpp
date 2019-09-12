@@ -135,6 +135,23 @@
             }
           }
         }
+
+        if(m_NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_TEMPERATURE) || m_NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_HUMIDITY))
+        {
+          int16_t NewDewpoint = CalculateDewpoint(m_Temperature, m_Humidity);
+          if(NewDewpoint != m_Dewpoint)
+          {
+            m_Dewpoint = NewDewpoint;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_DEWPOINT);
+          }
+
+          uint16_t NewAbsHum = ConvertHumidityRelative2Absolute(m_Temperature, m_Humidity);
+          if(NewAbsHum != m_AbsHumidity)
+          {
+            m_AbsHumidity = NewAbsHum;
+            m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_ABSHUMIDITY);
+          }
+        }
         
         if(m_NewDataBitset && m_NewDataCallback != NULL)    // when there were new Data in this transmission, call callback function
           m_NewDataCallback();
@@ -185,6 +202,16 @@
   uint8_t Ventus_Weathersensors::GetHumidity()
   {
     return m_Humidity;
+  }
+
+  int16_t Ventus_Weathersensors::GetDewpoint()
+  {
+    return m_Dewpoint;
+  }
+
+  uint16_t Ventus_Weathersensors::GetAbsoluteHumidity()
+  {
+    return m_AbsHumidity;
   }
 
   bool Ventus_Weathersensors::GetBatteryLowW174()
@@ -317,4 +344,44 @@
       // value is positive
       return inputvalue;
     }
+  }
+
+  uint16_t Ventus_Weathersensors::ConvertHumidityRelative2Absolute(int16_t temperature, uint8_t relative_humidity)
+  {
+    //input in 0,1°C , 0-100% humidity
+    //ouput in 1/100 g/m³
+    double temp = temperature / 10.0;
+    double value = (6.112 * pow(2.718, (17.67 * temp)/(temp+243.5)) * relative_humidity * 2.1674) / (273.15 + temp);
+    value *= 100;
+    return round(value);
+  }
+
+  int16_t Ventus_Weathersensors::CalculateDewpoint(int16_t temperature, uint8_t relative_humidity)
+  {
+    //input in 0,1°C , 0-100% humidity
+    //ouput in 0,1°C
+    double temp = temperature / 10.0;
+
+    double a,b;
+    if( temp >= 0 )
+    {
+      a = 7.5;
+      b = 237.3;
+    }
+    else
+    {
+      a = 7.6;
+      b = 240.7;
+    }
+
+    // Magnusformel
+    double sdd = 6.1078 * pow(10.0, ( (a * temp) / (b + temp) ) ); //Sättigungsdampfdruck
+    double dd = (relative_humidity / 100.0) * sdd; //Dampfdruck
+    double v = log10 ( (dd / 6.1078) / log10(10));
+
+    double value = (b * v) / (a - v); //Taupunkt 
+
+
+    value *= 10;
+    return round(value);
   }

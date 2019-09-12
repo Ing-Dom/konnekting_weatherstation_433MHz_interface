@@ -10,6 +10,8 @@
 #define VENTUS_WEATHERSENSORS_WINDGUST 3
 #define VENTUS_WEATHERSENSORS_WINDDIRECTION 4
 #define VENTUS_WEATHERSENSORS_RAIN 5
+#define VENTUS_WEATHERSENSORS_DEWPOINT 6
+#define VENTUS_WEATHERSENSORS_ABSHUMIDITY 7
 #define VENTUS_WEATHERSENSORS_BATTERYLOWW132 9
 #define VENTUS_WEATHERSENSORS_BATTERYLOWW174 10
 #define VENTUS_WEATHERSENSORS_RANDOMIDW132 11
@@ -28,7 +30,9 @@ class Ventus_Weathersensors
 
   private: uint16_t m_WindSpeed, m_WindDirection, m_WindGust, m_RainVolume = 0xffff;
   private: int16_t m_Temperature = 0xffff;
+  private: int16_t m_Dewpoint = 0xffff;
   private: uint8_t m_Humidity = 0xff;
+  private: uint16_t m_AbsHumidity = 0xffff;
   private: bool m_BatteryLowW174;
   private: bool m_BatteryLowW132;
   private: uint8_t m_RandomIDW132;
@@ -56,6 +60,8 @@ class Ventus_Weathersensors
   public: uint16_t GetRainVolume();
   public: int16_t GetTemperature();
   public: uint8_t GetHumidity();
+  public: int16_t GetDewpoint();
+  public: uint16_t GetAbsoluteHumidity();
   public: bool GetBatteryLowW174();
   public: bool GetBatteryLowW132();
   public: uint8_t GetRandomIDW132();
@@ -65,4 +71,6 @@ class Ventus_Weathersensors
   private: uint8_t ChecksumW132(uint32_t packet);
   private: uint8_t ChecksumW174(uint32_t packet);
   private: int16_t Convert_12BitSignedValue_Int16(uint16_t inputvalue);
+  private: uint16_t ConvertHumidityRelative2Absolute(int16_t temperature, uint8_t relative_humidity);
+  private: int16_t CalculateDewpoint(int16_t temperature, uint8_t relative_humidity);
 };
