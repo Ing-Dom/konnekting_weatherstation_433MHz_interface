@@ -9,7 +9,7 @@ V0.0.1
 ToDo:
 rain counters
 bme280
-data age is not correct only updated when changed)
+data age is not correct only updated when changed
 change DPT 9.007 at absolsute hum to 9.029 with beta5 / 1.0.0
 */
 
@@ -193,7 +193,7 @@ void setup()
   if (!Konnekting.isFactorySetting())
   {
     param_max_data_age = (uint8_t)Konnekting.getUINT8Param(PARAM_max_data_age);
-    for(int i = 0;i++;i<6)
+    for(int i = 0;i<8;i++)
     {
       param_send_on_change[i] = (uint8_t)Konnekting.getUINT8Param(PARAM_send_on_change_temperature+i);
       param_cyclic_send_rate[i] = (uint8_t)Konnekting.getUINT8Param(PARAM_cyclic_send_rate_temperature+i);
@@ -423,9 +423,11 @@ void T4() // 500ms
   // cyclic sending
   if(param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] > 0)  // value > 0 indicates that feature is active
   {
+    //Debug.println(F("Cyc Temp: %d %d %d"), data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE], millis(), param_max_data_age);
     if( data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE] != 0 &&     // check if there is value to send AND
         calculateElapsedMillis(data_last_received[VENTUS_WEATHERSENSORS_TEMPERATURE], millis()) < param_max_data_age * 30000) // stop sending when data is to old (param digit is 30s = 30000ms)
     {
+      //Debug.println(F("Cyc Temp2: %d %d %d"), (knx_last_sent[COMOBJ_temperature], millis()), param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] * 10000);
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_temperature], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_TEMPERATURE] * 10000) // one param digit is 10s
       {
         Knx.write(COMOBJ_temperature, mysensors->GetTemperature() / 10.0); // want to use double to not lose precision, so divide by 10.0

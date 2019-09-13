@@ -22,31 +22,31 @@
 				</Parameter>
                 <Parameter Id="3" IdName="send_on_change_temperature">
 					<Description>Send Temperature on change only if change is greater [x 0.1°C]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="4" IdName="send_on_change_humidity">
 					<Description>Send Humidity on change only if change is greater [x 1%]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="5" IdName="send_on_change_windspeed">
 					<Description>Send Windspeed on change only if change is greater [x 0.1m/s]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="6" IdName="send_on_change_windgust">
 					<Description>Send Windgust on change only if change is greater [x 0.1m/s]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="7" IdName="send_on_change_rain">
 					<Description>Send Rain Volume on change only if change is greater [x 0.01l/m²]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="8" IdName="send_on_change_dewpoint">
 					<Description>Send Dewpoint on change only if change is greater [x 0.1°C]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="9" IdName="send_on_change_abshumidity">
 					<Description>Send Abs. Humidity on change only if change is greater [x 0.01g/m³]</Description>
-				        <Value Type="uint8" Default="00" />
+				        <Value Type="uint8" Default="01" />
 				</Parameter>
                 <Parameter Id="10" IdName="cyclic_send_rate_temperature">
 					<Description>Send Temperature every [x 10s]</Description>
@@ -107,7 +107,7 @@
             </CommObject>
 
             <CommObject Id="3" IdName="dewpoint">
-                <Name>Relative Air Humidity</Name>
+                <Name>Dewpoint</Name>
                 <Function>Weather Data (calculated)</Function>
                 <DataPointType>9.001</DataPointType>
                 <Flags>60</Flags> <!-- KLSÜ- -->
