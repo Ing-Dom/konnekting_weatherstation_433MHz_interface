@@ -9,7 +9,6 @@ V0.0.1
 ToDo:
 rain counters
 bme280
-data age is not correct only updated when changed
 change DPT 9.007 at absolsute hum to 9.029 with beta5 / 1.0.0
 */
 
