@@ -5,10 +5,12 @@
             "includePath": [
                 "C:\\Users\\e09sped0\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.5.3\\**",
                 "C:\\Program Files (x86)\\Arduino\\tools\\**",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**"
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\**",
+                "C:\\Users\\dosp\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.5.3\\**"
             ],
             "forcedInclude": [
-                "C:\\Users\\e09sped0\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.5.3\\cores\\arduino\\Arduino.h"
+                "C:\\Users\\e09sped0\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.5.3\\cores\\arduino\\Arduino.h",
+                "C:\\Users\\dosp\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\samd\\1.5.3\\cores\\arduino\\Arduino.h"
             ],
             "intelliSenseMode": "msvc-x64"
         }

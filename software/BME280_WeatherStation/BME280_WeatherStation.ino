@@ -17,7 +17,9 @@ BlueDot_BME280 bme280 = BlueDot_BME280();
 
 
 void setup() {
+
   Serial.begin(9600);
+  while (!Serial);
   Serial.println(F("Basic Weather Station"));
 
   //*********************************************************************
@@ -43,7 +45,7 @@ void setup() {
   //0x76:       Alternative I2C Address (SDO pin connected to GND)
   //0x77:       Default I2C Address (SDO pin unconnected)
   
-     bme280.parameter.I2CAddress = 0x77;                  //Choose I2C Address
+     bme280.parameter.I2CAddress = 0x76;                  //Choose I2C Address
 
      
      
@@ -125,7 +127,7 @@ void setup() {
   //0b100:      factor 8
   //0b101:      factor 16 (default value)
 
-    bme280.parameter.tempOversampling = 0b101;             //Setup Temperature Ovesampling
+    bme280.parameter.tempOversampling = 0b001;             //Setup Temperature Ovesampling
 
     
 
@@ -215,14 +217,15 @@ void loop()
 { 
   
    
-   Serial.print(F("Duration in Seconds:\t\t"));
-   Serial.println(float(millis())/1000);
+   //Serial.print(F("Duration in Seconds:\t\t"));
+   //Serial.println(float(millis())/1000);
  
    Serial.print(F("Temperature in Celsius:\t\t")); 
+
    Serial.println(bme280.readTempC());
  
-   Serial.print(F("Temperature in Fahrenheit:\t")); 
-   Serial.println(bme280.readTempF());
+   //Serial.print(F("Temperature in Fahrenheit:\t")); 
+   //Serial.println(bme280.readTempF());
    
    Serial.print(F("Humidity in %:\t\t\t")); 
    Serial.println(bme280.readHumidity());
@@ -230,11 +233,11 @@ void loop()
    Serial.print(F("Pressure in hPa:\t\t")); 
    Serial.println(bme280.readPressure());
 
-   Serial.print(F("Altitude in Meters:\t\t")); 
-   Serial.println(bme280.readAltitudeMeter());
+   //Serial.print(F("Altitude in Meters:\t\t")); 
+   //Serial.println(bme280.readAltitudeMeter());
 
-   Serial.print(F("Altitude in Feet:\t\t")); 
-   Serial.println(bme280.readAltitudeFeet());
+   //Serial.print(F("Altitude in Feet:\t\t")); 
+   //Serial.println(bme280.readAltitudeFeet());
    
    Serial.println();
    Serial.println();

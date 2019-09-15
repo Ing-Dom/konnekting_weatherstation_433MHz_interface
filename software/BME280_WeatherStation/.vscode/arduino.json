@@ -1,5 +1,6 @@
 {
     "board": "adafruit:samd:adafruit_itsybitsy_m0",
     "sketch": "BME280_WeatherStation.ino",
-    "configuration": "usbstack=arduino,debug=off"
+    "configuration": "usbstack=arduino,debug=off",
+    "port": "COM9"
 }
