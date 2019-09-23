@@ -10,6 +10,7 @@ ToDo:
 rain counters
 bme280 pressure
 change DPT 9.007 at absolsute hum to 9.029 with beta5 / 1.0.0
+correction factor for wind direction
 */
 
 
