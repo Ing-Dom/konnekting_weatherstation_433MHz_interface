@@ -65,7 +65,7 @@
             m_NewDataBitset |= ((uint32_t)1 << VENTUS_WEATHERSENSORS_RANDOMIDW174);   // always update the RandomID
 
 
-            uint16_t RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff) * 25; // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm -> 1 mm = 1 L/m2 hier zusaetzlich mal 10 um einen Integerwert zu erhalten
+            uint16_t RainVolume = ((unsigned long) (m_rxBuffer >> 16) & 0xffff); // die Bits 16-31 enthalten die Niederschlagsmenge in Einheiten zu je 0.25 mm
 
             //if(RainVolume != m_RainVolume)
             {
