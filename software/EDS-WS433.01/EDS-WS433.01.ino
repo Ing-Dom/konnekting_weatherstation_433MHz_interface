@@ -1,6 +1,6 @@
 /*
 EDS-WDD433.01 Weatherstation for 433Mhz Sensors
-V0.1.1
+V0.1.2
 */
 
 
@@ -77,6 +77,10 @@ Ventus_Weathersensors *mysensors;
 uint32_t data_last_received [16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 uint32_t knx_last_sent [16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int32_t knx_last_sent_value[16]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+uint16_t rain_data_last_valid = 0xffff;
+uint16_t rain_data_init_value = 0xffff;
+uint8_t rain_data_init_cnt = 0;
 
 
 //Dotstar LED
@@ -326,16 +330,66 @@ void NewVentus_WeathersensorsDataAvailible()
   {
     uint16_t NewRainVolume = mysensors->GetRainVolume();
     Debug.println(F("NewRainVolume: %d"), NewRainVolume);
-    
-    data_last_received[VENTUS_WEATHERSENSORS_RAIN] = millis();
 
-    // check if the parameter allows sending
-    if(abs(knx_last_sent_value[COMOBJ_rainvolume] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
+
+    bool new_value_valid = true;
+    if(true) // strict data filtering
     {
-      Knx.write(COMOBJ_rainvolume, (NewRainVolume / 4.0)); // value is in 0.25 mm, divide by 4 to get mm. Lib will convert to F16..
-      knx_last_sent[COMOBJ_rainvolume] = currentmillis;
-      knx_last_sent_value[COMOBJ_rainvolume] = NewRainVolume;
+      new_value_valid = false;
+
+      //check if there is a old, valid value
+      if(rain_data_last_valid != 0xffff)
+      {
+        //compare new value with old valid value
+        // must be equal or bigger, but not to big
+        if(NewRainVolume >= rain_data_last_valid && NewRainVolume <= rain_data_last_valid + 4)
+        {
+          //NewRainVolume valid
+          new_value_valid = true;
+        }
+      }
+      else
+      {
+        // no old value to compare
+        if(rain_data_init_cnt == 0)   // first value, initialize
+        {
+          rain_data_init_value = NewRainVolume;
+          rain_data_init_cnt++;
+        }
+        else
+        {
+          if(NewRainVolume == rain_data_init_value)
+            rain_data_init_cnt++;
+          else
+            rain_data_init_cnt == 0;
+        }
+
+        if(rain_data_init_cnt >= 3) // reveived 3 values with same value in a row
+        {
+          rain_data_last_valid = NewRainVolume;
+          //NewRainVolume valid
+          new_value_valid = true;
+        }
+      }
     }
+    
+    if(new_value_valid)
+    {
+      data_last_received[VENTUS_WEATHERSENSORS_RAIN] = millis();
+
+      // check if the parameter allows sending
+      if(abs(knx_last_sent_value[COMOBJ_rainvolume] - NewRainVolume) > param_send_on_change[VENTUS_WEATHERSENSORS_RAIN])
+      {
+        Knx.write(COMOBJ_rainvolume, (NewRainVolume / 4.0)); // value is in 0.25 mm, divide by 4 to get mm. Lib will convert to F16..
+        knx_last_sent[COMOBJ_rainvolume] = currentmillis;
+        knx_last_sent_value[COMOBJ_rainvolume] = NewRainVolume;
+      }
+    }
+    else
+    {
+      Knx.write(COMOBJ_error_code, NewRainVolume);
+    }
+    
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_DEWPOINT))
   {
@@ -492,7 +546,7 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_rainvolume], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_RAIN] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 100.0)); // value is in 0,01 mm, divide by 100 to get mm. Lib will convert to F16..
+        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 4.0)); // value is in 0.25 mm, divide by 4 to get mm. Lib will convert to F16..
         knx_last_sent[COMOBJ_rainvolume] = millis();
         knx_last_sent_value[COMOBJ_rainvolume] =  mysensors->GetRainVolume();
       }
