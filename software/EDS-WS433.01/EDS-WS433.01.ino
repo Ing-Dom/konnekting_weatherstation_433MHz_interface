@@ -1,6 +1,6 @@
 /*
 EDS-WDD433.01 Weatherstation for 433Mhz Sensors
-V0.1.3
+V0.1.4
 */
 
 
@@ -346,6 +346,7 @@ void NewVentus_WeathersensorsDataAvailible()
         {
           //NewRainVolume valid
           new_value_valid = true;
+          rain_data_last_valid = NewRainVolume;
         }
         else
         {
