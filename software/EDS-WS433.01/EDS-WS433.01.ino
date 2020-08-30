@@ -1,6 +1,6 @@
 /*
 EDS-WDD433.01 Weatherstation for 433Mhz Sensors
-V0.1.2
+V0.1.3
 */
 
 
@@ -342,11 +342,16 @@ void NewVentus_WeathersensorsDataAvailible()
       {
         //compare new value with old valid value
         // must be equal or bigger, but not to big
-        if(NewRainVolume >= rain_data_last_valid && NewRainVolume <= rain_data_last_valid + 4)
+        if(NewRainVolume >= rain_data_last_valid && NewRainVolume <= rain_data_last_valid + 8)
         {
           //NewRainVolume valid
           new_value_valid = true;
         }
+        else
+        {
+          Knx.write(COMOBJ_error_code, NewRainVolume | 0x00010000 );
+        }
+        
       }
       else
       {
@@ -355,13 +360,20 @@ void NewVentus_WeathersensorsDataAvailible()
         {
           rain_data_init_value = NewRainVolume;
           rain_data_init_cnt++;
+          Knx.write(COMOBJ_error_code, NewRainVolume | 0x00020000 );
         }
         else
         {
           if(NewRainVolume == rain_data_init_value)
+          {
             rain_data_init_cnt++;
+            Knx.write(COMOBJ_error_code, NewRainVolume | 0x00030000 );
+          }
           else
+          {
             rain_data_init_cnt == 0;
+            Knx.write(COMOBJ_error_code, NewRainVolume | 0x00040000 );
+          }
         }
 
         if(rain_data_init_cnt >= 3) // reveived 3 values with same value in a row
@@ -369,6 +381,7 @@ void NewVentus_WeathersensorsDataAvailible()
           rain_data_last_valid = NewRainVolume;
           //NewRainVolume valid
           new_value_valid = true;
+          Knx.write(COMOBJ_error_code, NewRainVolume | 0x00050000 );
         }
       }
     }
@@ -385,10 +398,8 @@ void NewVentus_WeathersensorsDataAvailible()
         knx_last_sent_value[COMOBJ_rainvolume] = NewRainVolume;
       }
     }
-    else
-    {
-      Knx.write(COMOBJ_error_code, NewRainVolume);
-    }
+
+    Knx.write(COMOBJ_error_code, NewRainVolume);
     
   }
   if(NewDataBitset & ((uint32_t)1 << VENTUS_WEATHERSENSORS_DEWPOINT))
