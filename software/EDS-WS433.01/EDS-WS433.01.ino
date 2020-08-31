@@ -1,6 +1,6 @@
 /*
 EDS-WDD433.01 Weatherstation for 433Mhz Sensors
-V0.1.4
+V0.1.5
 */
 
 
@@ -558,9 +558,9 @@ void T4() // 500ms
     {
       if(calculateElapsedMillis(knx_last_sent[COMOBJ_rainvolume], millis()) > param_cyclic_send_rate[VENTUS_WEATHERSENSORS_RAIN] * 10000) // one param digit is 10s
       {
-        Knx.write(COMOBJ_rainvolume, (mysensors->GetRainVolume() / 4.0)); // value is in 0.25 mm, divide by 4 to get mm. Lib will convert to F16..
+        Knx.write(COMOBJ_rainvolume, (rain_data_last_valid / 4.0)); // value is in 0.25 mm, divide by 4 to get mm. Lib will convert to F16..
         knx_last_sent[COMOBJ_rainvolume] = millis();
-        knx_last_sent_value[COMOBJ_rainvolume] =  mysensors->GetRainVolume();
+        knx_last_sent_value[COMOBJ_rainvolume] =  rain_data_last_valid;
       }
     }
   }
